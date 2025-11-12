@@ -64,8 +64,8 @@ export function Login({ onLogin }: LoginProps) {
               <Shield className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl text-white">Equipment Maintenance</h1>
-              <p className="text-blue-200">Management System</p>
+              <h1 className="text-3xl text-white">AI CMS</h1>
+              <p className="text-blue-200">AI-Driven Computerised Maintenance System</p>
             </div>
           </div>
           
@@ -76,7 +76,7 @@ export function Login({ onLogin }: LoginProps) {
           />
           
           <div className="space-y-4">
-            <h2 className="text-2xl text-white">Power Plant Operations</h2>
+            <h2 className="text-2xl text-white">Maintenance Operations</h2>
             <p className="text-blue-200 leading-relaxed">
               Comprehensive asset management, predictive maintenance, and real-time monitoring 
               for industrial equipment. Optimize your operations with AI-powered insights.
@@ -214,7 +214,7 @@ export function Login({ onLogin }: LoginProps) {
 
           <div className="mt-6 text-center">
             <p className="text-sm text-slate-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account? 
               <a href="#" className="text-blue-600 hover:underline">
                 Contact Administrator
               </a>

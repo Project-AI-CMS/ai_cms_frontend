@@ -52,16 +52,16 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, component: Dashboard },
   { id: 'monitoring', label: 'Asset Monitoring', icon: Activity, component: AssetMonitoring },
-  { id: 'alerts', label: 'Alerts & Notifications', icon: Bell, component: AlertsNotifications },
+  // { id: 'alerts', label: 'Alerts & Notifications', icon: Bell, component: AlertsNotifications },
   { id: 'equipment', label: 'Asset Management', icon: Database, component: EquipmentLedger },
-  { id: 'plans', label: 'Maintenance Plans', icon: Calendar, component: MaintenancePlans },
-  { id: 'execution', label: 'Maintenance Execution', icon: ClipboardList, component: MaintenanceExecution },
-  { id: 'spareparts', label: 'Spare Parts', icon: Package, component: SpareParts },
-  { id: 'defects', label: 'Defect Management', icon: AlertTriangle, component: DefectManagement },
-  { id: 'safety', label: 'Safety & Quality', icon: Shield, component: SafetyQuality },
-  { id: 'hr', label: 'HR & Teams', icon: Users, component: HRManagement, roles: ['Administrator', 'Maintenance Manager'] },
-  { id: 'cost', label: 'Cost Analysis', icon: DollarSign, component: CostAnalysis, roles: ['Administrator', 'Maintenance Manager'] },
-  { id: 'settings', label: 'System Settings', icon: Settings, component: SystemSettings, roles: ['Administrator'] },
+  // { id: 'plans', label: 'Maintenance Plans', icon: Calendar, component: MaintenancePlans },
+  // { id: 'execution', label: 'Maintenance Execution', icon: ClipboardList, component: MaintenanceExecution },
+  // { id: 'spareparts', label: 'Spare Parts', icon: Package, component: SpareParts },
+  // { id: 'defects', label: 'Defect Management', icon: AlertTriangle, component: DefectManagement },
+  // { id: 'safety', label: 'Safety & Quality', icon: Shield, component: SafetyQuality },
+  // { id: 'hr', label: 'HR & Teams', icon: Users, component: HRManagement, roles: ['Administrator', 'Maintenance Manager'] },
+  // { id: 'cost', label: 'Cost Analysis', icon: DollarSign, component: CostAnalysis, roles: ['Administrator', 'Maintenance Manager'] },
+  // { id: 'settings', label: 'System Settings', icon: Settings, component: SystemSettings, roles: ['Administrator'] },
 ];
 
 export default function App() {
@@ -120,8 +120,8 @@ export default function App() {
       {/* Sidebar */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-0'} bg-slate-900 text-white transition-all duration-300 overflow-hidden flex flex-col`}>
         <div className="p-6 border-b border-slate-700">
-          <h1 className="text-xl text-white">Equipment Maintenance System</h1>
-          <p className="text-sm text-slate-400 mt-1">Power Plant Operations</p>
+          <h1 className="text-xl text-white">AI-CMS</h1>
+          <p className="text-sm text-slate-400 mt-1">Maintenance Operations</p>
         </div>
         
         <nav className="flex-1 p-4 overflow-y-auto">
