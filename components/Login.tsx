@@ -70,7 +70,7 @@ export function Login({ onLogin }: LoginProps) {
           </div>
           
           <ImageWithFallback 
-            src="https://images.unsplash.com/photo-1635145613344-3e59b1e8afd0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwb3dlciUyMHBsYW50JTIwdHVyYmluZXxlbnwxfHx8fDE3NjE1NTY1Mzl8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
+            src="/logo.png"
             alt="Power Plant"
             className="w-full h-64 object-cover rounded-lg shadow-2xl"
           />
