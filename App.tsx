@@ -4,9 +4,12 @@ import { Login } from './components/Login';
 import { UserProfile } from './components/UserProfile';
 import { Dashboard } from './components/Dashboard';
 import { EquipmentLedger } from './components/EquipmentLedger';
+import { AssetManagement } from './components/AssetManagement';
 import { MaintenancePlans } from './components/MaintenancePlans';
 import { MaintenanceExecution } from './components/MaintenanceExecution';
 import { SpareParts } from './components/SpareParts';
+import { SparePartsManagement } from './components/SparePartsManagement';
+import { AssetTypePartsMapping } from './components/AssetTypePartsMapping';
 import { DefectManagement } from './components/DefectManagement';
 import { SafetyQuality } from './components/SafetyQuality';
 import { HRManagement } from './components/HRManagement';
@@ -30,7 +33,8 @@ import {
   User,
   LogOut,
   Activity,
-  Bell
+  Bell,
+  Link as LinkIcon
 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
@@ -53,10 +57,11 @@ const menuItems: MenuItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, component: Dashboard },
   { id: 'monitoring', label: 'Asset Monitoring', icon: Activity, component: AssetMonitoring },
   // { id: 'alerts', label: 'Alerts & Notifications', icon: Bell, component: AlertsNotifications },
-  { id: 'equipment', label: 'Asset Management', icon: Database, component: EquipmentLedger },
+  { id: 'equipment', label: 'Asset Management', icon: Database, component: AssetManagement },
   // { id: 'plans', label: 'Maintenance Plans', icon: Calendar, component: MaintenancePlans },
   // { id: 'execution', label: 'Maintenance Execution', icon: ClipboardList, component: MaintenanceExecution },
-  // { id: 'spareparts', label: 'Spare Parts', icon: Package, component: SpareParts },
+  { id: 'spareparts', label: 'Spare Parts', icon: Package, component: SparePartsManagement },
+  { id: 'parts-mapping', label: 'Parts Mapping', icon: LinkIcon, component: AssetTypePartsMapping, roles: ['Administrator'] },
   // { id: 'defects', label: 'Defect Management', icon: AlertTriangle, component: DefectManagement },
   // { id: 'safety', label: 'Safety & Quality', icon: Shield, component: SafetyQuality },
   // { id: 'hr', label: 'HR & Teams', icon: Users, component: HRManagement, roles: ['Administrator', 'Maintenance Manager'] },
