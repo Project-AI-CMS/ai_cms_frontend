@@ -1,31 +1,36 @@
 // Type definitions for the application
 
-export type AssetStatus = 'operational' | 'standby' | 'pending_repair' | 'under_repair' | 'scrapped';
+export type AssetStatus =
+  | "operational"
+  | "standby"
+  | "pending_repair"
+  | "under_repair"
+  | "scrapped";
 
 export type Asset = {
   id: string;
   name: string;
-  model_number: string;
-  serial_number: string;
-  asset_type_id: string;
-  location_id: string;
-  parent_asset_id: string | null;
-  installation_date: string;
-  current_health_score: number;
-  current_status: AssetStatus;
+  modelNumber: string;
+  serialNumber: string;
+  assetTypeId: string;
+  locationId: string;
+  parentAssetId: string | null;
+  installationDate: string;
+  currentHealthScore: number;
+  currentStatus: AssetStatus;
   manufacturer?: string;
-  rated_power?: string;
-  service_life?: string;
-  created_at?: string;
-  updated_at?: string;
+  ratedPower?: string;
+  serviceLife?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AssetType = {
   id: string;
   name: string;
   description?: string;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Location = {
@@ -33,34 +38,40 @@ export type Location = {
   name: string;
   description?: string;
   parent_location_id?: string | null;
-  created_at?: string;
-  updated_at?: string;
+  parentLocationId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type SparePart = {
   id: string;
-  part_number: string;
+  partNumber: string;
   name: string;
   description?: string;
-  quantity_on_hand: number;
-  reorder_threshold: number;
+  quantityOnHand: number;
+  reorderThreshold: number;
   unit_cost?: number;
   supplier?: string;
-  created_at?: string;
-  updated_at?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AssetTypePart = {
   id: string;
-  part_id: string;
-  asset_type_id: string;
-  quantity_per_asset: number;
-  position_reference?: string;
-  created_at?: string;
-  updated_at?: string;
+  partId: string;
+  assetTypeId: string;
+  quantityPerAsset: number;
+  positionReference?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type UserRole = 'Administrator' | 'Maintenance Manager' | 'Maintenance Worker' | 'Safety Officer' | 'Viewer';
+export type UserRole =
+  | "Administrator"
+  | "Maintenance Manager"
+  | "Maintenance Worker"
+  | "Safety Officer"
+  | "Viewer";
 
 export type UserInfo = {
   name: string;
