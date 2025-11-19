@@ -66,7 +66,7 @@ const menuItems: MenuItem[] = [
   // { id: 'safety', label: 'Safety & Quality', icon: Shield, component: SafetyQuality },
   // { id: 'hr', label: 'HR & Teams', icon: Users, component: HRManagement, roles: ['Administrator', 'Maintenance Manager'] },
   // { id: 'cost', label: 'Cost Analysis', icon: DollarSign, component: CostAnalysis, roles: ['Administrator', 'Maintenance Manager'] },
-  // { id: 'settings', label: 'System Settings', icon: Settings, component: SystemSettings, roles: ['Administrator'] },
+  { id: 'settings', label: 'System Settings', icon: Settings, component: SystemSettings, roles: ['Administrator'] },
 ];
 
 export default function App() {
