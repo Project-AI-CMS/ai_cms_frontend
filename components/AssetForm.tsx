@@ -13,7 +13,7 @@ import {
 } from "./ui/select";
 import { Alert, AlertDescription } from "./ui/alert";
 import { ArrowLeft, Save, AlertCircle, CheckCircle2 } from "lucide-react";
-import { Asset, AssetType, Location, AssetStatus } from "@/types";
+import { Asset, AssetType, Location } from "@/types";
 import { assetApi, assetTypeApi, locationApi } from "@/lib/api";
 
 type AssetFormProps = {
@@ -27,17 +27,11 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
 
   const [formData, setFormData] = useState({
     name: "",
-    modelNumber: "",
     serialNumber: "",
     assetTypeId: "",
     locationId: "",
     parentAssetId: "",
     installationDate: "",
-    currentHealthScore: 100,
-    currentStatus: "operational" as AssetStatus,
-    manufacturer: "",
-    ratedPower: "",
-    serviceLife: "",
   });
 
   const [assetTypes, setAssetTypes] = useState<AssetType[]>([]);
@@ -64,25 +58,21 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
 
       setAssetTypes(typesData);
       setLocations(locationsData);
-      setParentAssets([]);
-      // setParentAssets(assetsData.data);
+      const assetsList = Array.isArray(assetsData)
+        ? assetsData
+        : assetsData?.data || [];
+      setParentAssets(assetsList);
 
       // If editing, fetch asset data
       if (isEdit) {
         const assetData = await assetApi.getById(assetId);
         setFormData({
           name: assetData.name,
-          modelNumber: assetData.modelNumber,
           serialNumber: assetData.serialNumber,
           assetTypeId: assetData.assetTypeId,
           locationId: assetData.locationId,
           parentAssetId: assetData.parentAssetId || "",
           installationDate: assetData.installationDate,
-          currentHealthScore: assetData.currentHealthScore,
-          currentStatus: assetData.currentStatus,
-          manufacturer: assetData.manufacturer || "",
-          ratedPower: assetData.ratedPower || "",
-          serviceLife: assetData.serviceLife || "",
         });
       }
     } catch (error) {
@@ -97,17 +87,13 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = "Asset name is required";
-    if (!formData.modelNumber.trim())
-      newErrors.modelNumber = "Model number is required";
     if (!formData.serialNumber.trim())
       newErrors.serialNumber = "Serial number is required";
     if (!formData.assetTypeId) newErrors.assetTypeId = "Asset type is required";
     if (!formData.locationId) newErrors.locationId = "Location is required";
     if (!formData.installationDate)
       newErrors.installationDate = "Installation date is required";
-    if (formData.currentHealthScore < 0 || formData.currentHealthScore > 100) {
-      newErrors.currentHealthScore = "Health score must be between 0 and 100";
-    }
+    // Only validate fields present in the Asset schema
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -126,8 +112,12 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
     setLoading(true);
     try {
       const submitData = {
-        ...formData,
+        name: formData.name,
+        serialNumber: formData.serialNumber,
+        assetTypeId: formData.assetTypeId,
+        locationId: formData.locationId,
         parentAssetId: formData.parentAssetId || null,
+        installationDate: formData.installationDate,
       };
 
       if (isEdit) {
@@ -229,26 +219,6 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
                 </div>
 
                 <div>
-                  <Label htmlFor="modelNumber">
-                    Model Number <span className="text-red-600">*</span>
-                  </Label>
-                  <Input
-                    id="modelNumber"
-                    value={formData.modelNumber}
-                    onChange={(e) =>
-                      handleChange("modelNumber", e.target.value)
-                    }
-                    placeholder="Enter model number"
-                    className={errors.modelNumber ? "border-red-500" : ""}
-                  />
-                  {errors.modelNumber && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {errors.modelNumber}
-                    </p>
-                  )}
-                </div>
-
-                <div>
                   <Label htmlFor="serialNumber">
                     Serial Number <span className="text-red-600">*</span>
                   </Label>
@@ -266,18 +236,6 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
                       {errors.serialNumber}
                     </p>
                   )}
-                </div>
-
-                <div>
-                  <Label htmlFor="manufacturer">Manufacturer</Label>
-                  <Input
-                    id="manufacturer"
-                    value={formData.manufacturer}
-                    onChange={(e) =>
-                      handleChange("manufacturer", e.target.value)
-                    }
-                    placeholder="Enter manufacturer"
-                  />
                 </div>
               </div>
             </div>
@@ -394,95 +352,7 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
               </div>
             </div>
 
-            {/* Technical Specifications */}
-            <div>
-              <h3 className="text-lg text-slate-900 mb-4">
-                Technical Specifications
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="ratedPower">Rated Power</Label>
-                  <Input
-                    id="ratedPower"
-                    value={formData.ratedPower}
-                    onChange={(e) => handleChange("ratedPower", e.target.value)}
-                    placeholder="e.g., 600 MW"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="serviceLife">Service Life</Label>
-                  <Input
-                    id="serviceLife"
-                    value={formData.serviceLife}
-                    onChange={(e) =>
-                      handleChange("serviceLife", e.target.value)
-                    }
-                    placeholder="e.g., 30 years"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Status Information */}
-            <div>
-              <h3 className="text-lg text-slate-900 mb-4">
-                Status Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="current_status">
-                    Current Status <span className="text-red-600">*</span>
-                  </Label>
-                  <Select
-                    value={formData.currentStatus}
-                    onValueChange={(value) =>
-                      handleChange("currentStatus", value as AssetStatus)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="operational">Operational</SelectItem>
-                      <SelectItem value="standby">Standby</SelectItem>
-                      <SelectItem value="pending_repair">
-                        Pending Repair
-                      </SelectItem>
-                      <SelectItem value="under_repair">Under Repair</SelectItem>
-                      <SelectItem value="scrapped">Scrapped</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="current_health_score">
-                    Health Score (0-100) <span className="text-red-600">*</span>
-                  </Label>
-                  <Input
-                    id="currentHealthScore"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={formData.currentHealthScore}
-                    onChange={(e) =>
-                      handleChange(
-                        "currentHealthScore",
-                        parseInt(e.target.value) || 0
-                      )
-                    }
-                    className={
-                      errors.currentHealthScore ? "border-red-500" : ""
-                    }
-                  />
-                  {errors.currentHealthScore && (
-                    <p className="text-sm text-red-600 mt-1">
-                      {errors.currentHealthScore}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Status and technical fields removed to match Asset schema */}
           </div>
         </Card>
 

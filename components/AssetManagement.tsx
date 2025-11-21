@@ -1,38 +1,44 @@
-'use client'
-import { useState } from 'react';
-import { AssetList } from './AssetList';
-import { AssetDetail } from './AssetDetail';
-import { AssetForm } from './AssetForm';
-import { AssetHierarchy } from './AssetHierarchy';
-import { AssetTypeManagement } from './AssetTypeManagement';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { UserInfo } from '@/types';
+"use client";
+import { useState } from "react";
+import { AssetList } from "./AssetList";
+import { AssetDetail } from "./AssetDetail";
+import { AssetForm } from "./AssetForm";
+import { AssetHierarchy } from "./AssetHierarchy";
+import { AssetTypeManagement } from "./AssetTypeManagement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { UserInfo } from "@/types";
 
 type AssetManagementProps = {
-  user: UserInfo;
+  user?: UserInfo;
 };
 
-type ViewMode = 'list' | 'detail' | 'form' | 'hierarchy' | 'types';
+type ViewMode = "list" | "detail" | "form" | "hierarchy" | "types";
 
-export function AssetManagement({ user }: AssetManagementProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+const defaultUser: UserInfo = {
+  email: "guest@example.com",
+  name: "Guest",
+  role: "Administrator",
+};
+export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
+
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedAssetId, setSelectedAssetId] = useState<string | undefined>();
-  const [activeTab, setActiveTab] = useState('list');
+  const [activeTab, setActiveTab] = useState("list");
 
   const handleViewAsset = (assetId: string) => {
     setSelectedAssetId(assetId);
-    setViewMode('detail');
+    setViewMode("detail");
   };
 
   const handleEditAsset = (assetId: string) => {
     setSelectedAssetId(assetId);
-    setViewMode('form');
+    setViewMode("form");
   };
 
   const handleBackToList = () => {
-    setViewMode('list');
+    setViewMode("list");
     setSelectedAssetId(undefined);
-    setActiveTab('list');
+    setActiveTab("list");
   };
 
   const handleFormSuccess = () => {
@@ -40,17 +46,22 @@ export function AssetManagement({ user }: AssetManagementProps) {
   };
 
   // If in detail or form view, show that component
-  if (viewMode === 'detail' && selectedAssetId) {
+  if (viewMode === "detail" && selectedAssetId) {
     return (
       <AssetDetail
         assetId={selectedAssetId}
         onBack={handleBackToList}
-        onEdit={user.role === 'Administrator' || user.role === 'Maintenance Manager' ? handleEditAsset : undefined}
+        onEdit={
+          user.role === "Administrator" ||
+          user.role === "Maintenance Manager"
+            ? handleEditAsset
+            : undefined
+        }
       />
     );
   }
 
-  if (viewMode === 'form') {
+  if (viewMode === "form") {
     return (
       <AssetForm
         assetId={selectedAssetId}
@@ -66,7 +77,7 @@ export function AssetManagement({ user }: AssetManagementProps) {
       <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="list">Asset List</TabsTrigger>
         <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
-        {(user.role === 'Administrator') && (
+        {user.role === "Administrator" && (
           <TabsTrigger value="types">Asset Types</TabsTrigger>
         )}
       </TabsList>
@@ -83,7 +94,7 @@ export function AssetManagement({ user }: AssetManagementProps) {
         <AssetHierarchy onViewAsset={handleViewAsset} />
       </TabsContent>
 
-      {user.role === 'Administrator' && (
+      {user.role === "Administrator" && (
         <TabsContent value="types" className="mt-6">
           <AssetTypeManagement user={user} />
         </TabsContent>

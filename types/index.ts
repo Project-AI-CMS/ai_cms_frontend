@@ -10,19 +10,11 @@ export type AssetStatus =
 export type Asset = {
   id: string;
   name: string;
-  modelNumber: string;
   serialNumber: string;
   assetTypeId: string;
   locationId: string;
   parentAssetId: string | null;
   installationDate: string;
-  currentHealthScore: number;
-  currentStatus: AssetStatus;
-  manufacturer?: string;
-  ratedPower?: string;
-  serviceLife?: string;
-  createdAt?: string;
-  updatedAt?: string;
 };
 
 export type AssetType = {
@@ -37,7 +29,6 @@ export type Location = {
   id: string;
   name: string;
   description?: string;
-  parent_location_id?: string | null;
   parentLocationId?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -50,8 +41,6 @@ export type SparePart = {
   description?: string;
   quantityOnHand: number;
   reorderThreshold: number;
-  unit_cost?: number;
-  supplier?: string;
   createdAt?: string;
   updatedAt?: string;
 };

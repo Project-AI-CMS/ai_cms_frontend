@@ -24,7 +24,7 @@ import {
 import type { AssetTypePart, SparePart, AssetType, UserInfo } from '@/types';
 
 type AssetTypePartsProps = {
-  user: UserInfo;
+  user?: UserInfo;
 };
 
 type AssetTypePartFormData = Omit<AssetTypePart, 'id' | 'created_at' | 'updated_at'>;
@@ -64,8 +64,12 @@ const mockMappings: AssetTypePart[] = [
   { id: '6', part_id: '6', asset_type_id: '1', quantity_per_asset: 200, position_reference: 'Bearing Lubrication System', created_at: '2025-06-01T08:00:00Z', updated_at: '2025-10-15T15:00:00Z' },
   { id: '7', part_id: '1', asset_type_id: '2', quantity_per_asset: 2, position_reference: 'Generator Bearings', created_at: '2025-07-10T12:00:00Z', updated_at: '2025-08-20T14:00:00Z' }
 ];
-
-export function AssetTypePartsMapping({ user }: AssetTypePartsProps) {
+const defaultUser: UserInfo = {
+  email: "guest@example.com",
+  name: "Guest",
+  role: "Administrator",
+};
+export function AssetTypePartsMapping({ user = defaultUser }: AssetTypePartsProps) {
   const [mappings, setMappings] = useState<AssetTypePart[]>(mockMappings);
   const [assetTypes, setAssetTypes] = useState<AssetType[]>(mockAssetTypes);
   const [spareParts, setSpareParts] = useState<SparePart[]>(mockSpareParts);

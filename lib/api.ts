@@ -15,164 +15,10 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-// Mock data for development
-const mockAssets: Asset[] = [
-  {
-    id: "asset-1",
-    name: "Steam Turbine Unit 1",
-    modelNumber: "ST-600-HP",
-    serialNumber: "ST600HP-2018-001",
-    assetTypeId: "type-1",
-    locationId: "loc-1",
-    parentAssetId: null,
-    installationDate: "2018-03-15",
-    currentHealthScore: 92,
-    currentStatus: "operational",
-    manufacturer: "Harbin Electric",
-    ratedPower: "600 MW",
-    serviceLife: "30 years",
-  },
-  {
-    id: "asset-2",
-    name: "High Pressure Rotor",
-    modelNumber: "HPR-600",
-    serialNumber: "HPR600-2018-001",
-    assetTypeId: "type-2",
-    locationId: "loc-1",
-    parentAssetId: "asset-1",
-    installationDate: "2018-03-15",
-    currentHealthScore: 45,
-    currentStatus: "pending_repair",
-    manufacturer: "Harbin Electric",
-  },
-  {
-    id: "asset-3",
-    name: "Generator Unit 1",
-    modelNumber: "GEN-600-3PH",
-    serialNumber: "GEN600-2018-002",
-    assetTypeId: "type-3",
-    locationId: "loc-2",
-    parentAssetId: null,
-    installationDate: "2018-03-15",
-    currentHealthScore: 87,
-    currentStatus: "operational",
-    manufacturer: "Dongfang Electric",
-    ratedPower: "600 MW",
-  },
-  {
-    id: "asset-4",
-    name: "Boiler Feed Pump",
-    modelNumber: "BFP-2000",
-    serialNumber: "BFP2000-2018-003",
-    assetTypeId: "type-4",
-    locationId: "loc-3",
-    parentAssetId: null,
-    installationDate: "2018-02-10",
-    currentHealthScore: 68,
-    currentStatus: "under_repair",
-    manufacturer: "Shenyang Pumps",
-  },
-];
 
-const mockAssetTypes: AssetType[] = [
-  {
-    id: "type-1",
-    name: "Steam Turbine",
-    description: "High-pressure steam turbines for power generation",
-  },
-  {
-    id: "type-2",
-    name: "Rotor Assembly",
-    description: "Turbine rotor components",
-  },
-  {
-    id: "type-3",
-    name: "Generator",
-    description: "Electrical power generators",
-  },
-  {
-    id: "type-4",
-    name: "Pump",
-    description: "Industrial pumps for various applications",
-  },
-  { id: "type-5", name: "Transformer", description: "Electrical transformers" },
-];
-
-const mockLocations: Location[] = [
-  {
-    id: "loc-1",
-    name: "Turbine Hall - Unit 1",
-    description: "Main turbine hall for Unit 1",
-  },
-  {
-    id: "loc-2",
-    name: "Generator Hall - Unit 1",
-    description: "Generator hall for Unit 1",
-  },
-  {
-    id: "loc-3",
-    name: "Boiler House - Unit 1",
-    description: "Boiler house for Unit 1",
-  },
-  {
-    id: "loc-4",
-    name: "Transformer Yard",
-    description: "Main transformer yard",
-  },
-];
-
-const mockSpareParts: SparePart[] = [
-  {
-    id: "part-1",
-    partNumber: "BRG-001",
-    name: "Turbine Bearing",
-    description: "High-speed turbine bearing",
-    quantityOnHand: 5,
-    reorderThreshold: 2,
-    unit_cost: 15000,
-    supplier: "SKF Bearings",
-  },
-  {
-    id: "part-2",
-    partNumber: "SEAL-002",
-    name: "Steam Seal",
-    description: "High-temperature steam seal",
-    quantityOnHand: 12,
-    reorderThreshold: 5,
-    unit_cost: 2500,
-    supplier: "John Crane",
-  },
-  {
-    id: "part-3",
-    partNumber: "BLADE-003",
-    name: "Turbine Blade",
-    description: "HP turbine blade set",
-    quantityOnHand: 1,
-    reorderThreshold: 1,
-    unit_cost: 85000,
-    supplier: "Harbin Electric",
-  },
-];
-
-const mockAssetTypeParts: AssetTypePart[] = [
-  {
-    id: "atp-1",
-    partId: "part-1",
-    assetTypeId: "type-1",
-    quantityPerAsset: 4,
-    positionReference: "Main shaft bearings",
-  },
-  {
-    id: "atp-2",
-    partId: "part-2",
-    assetTypeId: "type-1",
-    quantityPerAsset: 8,
-    positionReference: "Steam inlet/outlet seals",
-  },
-];
 
 // Simulate API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Asset API
 /*
@@ -272,7 +118,7 @@ export const assetApi = {
 
   async getHierarchy() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/assets/hierarchy`);
+      const response = await axios.get(`${API_BASE_URL}/assets/hierarchies`);
       return response.data;
     } catch (err: any) {
       const message =

@@ -1,31 +1,24 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
-import { 
+"use client";
+import { useState, useEffect } from "react";
+import { useCallback } from "react";
+import { Card } from "./ui/card";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
+import { Alert, AlertDescription } from "./ui/alert";
+import {
   ChevronDown,
   ChevronRight,
   GripVertical,
   AlertCircle,
-  CheckCircle2,
-  Activity
-} from 'lucide-react';
-import { Asset, AssetStatus } from '@/types';
-import { assetApi } from '@/lib/api';
-
-const statusConfig: Record<AssetStatus, { label: string; color: string }> = {
-  operational: { label: 'Operational', color: 'bg-green-100 text-green-700' },
-  standby: { label: 'Standby', color: 'bg-blue-100 text-blue-700' },
-  pending_repair: { label: 'Pending Repair', color: 'bg-orange-100 text-orange-700' },
-  under_repair: { label: 'Under Repair', color: 'bg-red-100 text-red-700' },
-  scrapped: { label: 'Scrapped', color: 'bg-gray-100 text-gray-700' }
-};
+  CheckCircle,
+} from "lucide-react";
+import { Asset } from "@/types";
+import { assetApi } from "@/lib/api";
 
 type TreeNode = Asset & {
-  children: TreeNode[];
+  components: TreeNode[];
   level: number;
+  currentHealthScore?: number;
 };
 
 type AssetHierarchyProps = {
@@ -38,26 +31,43 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [draggedNode, setDraggedNode] = useState<TreeNode | null>(null);
-  const [success, setSuccess] = useState('');
-  const [error, setError] = useState('');
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetchAssets();
+    fetchAssets(); // Fetch assets on component mount
   }, []);
 
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     setLoading(true);
     try {
       const response = await assetApi.getHierarchy();
-      setAssets(response);
-      buildTree(response);
-    } catch (error) {
-      console.error('Failed to fetch assets:', error);
-      setError('Failed to load asset hierarchy');
+      const list = Array.isArray(response)
+        ? response
+        : response && (response.data ?? []);
+      // normalize snake_case -> camelCase for assets
+      const normalized: Asset[] = (list as any[]).map((a) => ({
+        id: a.id,
+        name: a.name,
+        serialNumber: a.serial_number ?? a.serialNumber ?? "",
+        assetTypeId: a.asset_type_id ?? a.assetTypeId ?? "",
+        locationId: a.location_id ?? a.locationId ?? "",
+        parentAssetId: a.parent_asset_id ?? a.parentAssetId ?? null,
+        installationDate: a.installation_date ?? a.installationDate ?? "",
+      }));
+      setAssets(normalized);
+      buildTree(normalized);
+    } catch (err) {
+      console.error("Failed to fetch assets:", err);
+      setError("Failed to load asset hierarchy");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   const buildTree = (assetList: Asset[]) => {
     // Build tree structure
@@ -65,16 +75,23 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
     const rootNodes: TreeNode[] = [];
 
     // First pass: create all nodes
-    assetList.forEach(asset => {
-      assetMap.set(asset.id, { ...asset, children: [], level: 0 });
+    assetList.forEach((asset) => {
+      // preserve optional fields if present on the response
+      const node: TreeNode = {
+        ...asset,
+        components: [],
+        level: 0,
+        currentHealthScore: (asset as any).currentHealthScore,
+      };
+      assetMap.set(asset.id, node);
     });
 
     // Second pass: build parent-child relationships
-    assetList.forEach(asset => {
+    assetList.forEach((asset) => {
       const node = assetMap.get(asset.id)!;
-      if (asset.parent_asset_id && assetMap.has(asset.parent_asset_id)) {
-        const parent = assetMap.get(asset.parent_asset_id)!;
-        parent.children.push(node);
+      if (asset.parentAssetId && assetMap.has(asset.parentAssetId)) {
+        const parent = assetMap.get(asset.parentAssetId)!;
+        parent.components.push(node);
         node.level = parent.level + 1;
       } else {
         rootNodes.push(node);
@@ -83,19 +100,19 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
 
     // Sort children by name
     const sortChildren = (node: TreeNode) => {
-      node.children.sort((a, b) => a.name.localeCompare(b.name));
-      node.children.forEach(sortChildren);
+      node.components.sort((a, b) => a.name.localeCompare(b.name));
+      node.components.forEach(sortChildren);
     };
     rootNodes.forEach(sortChildren);
 
     setTreeData(rootNodes);
-    
+
     // Expand root nodes by default
-    setExpandedNodes(new Set(rootNodes.map(n => n.id)));
+    setExpandedNodes(new Set(rootNodes.map((n) => n.id)));
   };
 
   const toggleNode = (nodeId: string) => {
-    setExpandedNodes(prev => {
+    setExpandedNodes((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(nodeId)) {
         newSet.delete(nodeId);
@@ -106,40 +123,30 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
     });
   };
 
-  const getHealthScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-orange-600';
-    return 'text-red-600';
-  };
-
-  const calculateAggregateHealth = (node: TreeNode): number => {
-    if (node.children.length === 0) {
-      return node.current_health_score;
-    }
-    const childrenHealth = node.children.map(calculateAggregateHealth);
-    const avgChildHealth = childrenHealth.reduce((a, b) => a + b, 0) / childrenHealth.length;
-    return Math.round((node.current_health_score + avgChildHealth) / 2);
-  };
+  // Health/score removed from schema — no aggregate calculations
 
   const handleDragStart = (e: React.DragEvent, node: TreeNode) => {
     setDraggedNode(node);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = async (e: React.DragEvent, targetNode: TreeNode | null) => {
+  const handleDrop = async (
+    e: React.DragEvent,
+    targetNode: TreeNode | null
+  ) => {
     e.preventDefault();
-    
+
     if (!draggedNode) return;
 
     // Prevent dropping on self or descendants
     if (targetNode && isDescendant(draggedNode, targetNode)) {
-      setError('Cannot move an asset to its own descendant');
-      setTimeout(() => setError(''), 3000);
+      setError("Cannot move an asset to its own descendant");
+      setTimeout(() => setError(""), 3000);
       setDraggedNode(null);
       return;
     }
@@ -148,11 +155,17 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       const newParentId = targetNode?.id || null;
       await assetApi.updateHierarchy(draggedNode.id, newParentId);
       setSuccess(`Successfully moved ${draggedNode.name}`);
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(""), 3000);
       fetchAssets(); // Refresh the tree
-    } catch (error: any) {
-      setError(error.message || 'Failed to update hierarchy');
-      setTimeout(() => setError(''), 3000);
+    } catch (err) {
+      // Normalize error to a string before updating state
+      const message =
+        (err &&
+          typeof (err as any).message === "string" &&
+          (err as any).message) ||
+        (typeof err === "string" ? err : "Failed to update hierarchy");
+      setError(message);
+      setTimeout(() => setError(""), 3000);
     } finally {
       setDraggedNode(null);
     }
@@ -160,13 +173,12 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
 
   const isDescendant = (ancestor: TreeNode, node: TreeNode): boolean => {
     if (ancestor.id === node.id) return true;
-    return ancestor.children.some(child => isDescendant(child, node));
+    return ancestor.components.some((child) => isDescendant(child, node));
   };
 
   const renderTreeNode = (node: TreeNode) => {
     const isExpanded = expandedNodes.has(node.id);
-    const hasChildren = node.children.length > 0;
-    const aggregateHealth = calculateAggregateHealth(node);
+    const hasChildren = node.components.length > 0;
 
     return (
       <div key={node.id}>
@@ -176,7 +188,9 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, node)}
           className={`flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-move border-2 ${
-            draggedNode?.id === node.id ? 'border-blue-500 bg-blue-50' : 'border-transparent'
+            draggedNode?.id === node.id
+              ? "border-blue-500 bg-blue-50"
+              : "border-transparent"
           }`}
           style={{ paddingLeft: `${node.level * 24 + 12}px` }}
         >
@@ -200,40 +214,26 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           )}
 
           {/* Asset Info */}
-          <div className="flex-1 grid grid-cols-5 gap-4 items-center">
+          <div className="flex-1 grid grid-cols-4 gap-4 items-center">
             <div>
               <p className="text-sm text-slate-900 font-medium">{node.name}</p>
-              <p className="text-xs text-slate-500">{node.model_number}</p>
+              <p className="text-xs text-slate-500">
+                Installed: {node.installationDate}
+              </p>
             </div>
 
-            <div className="text-sm text-slate-600">{node.serial_number}</div>
+            <div className="text-sm text-slate-600">{node.serialNumber}</div>
 
-            <div>
-              <Badge className={statusConfig[node.current_status].color}>
-                {statusConfig[node.current_status].label}
-              </Badge>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-slate-400" />
-                <span className={`text-sm font-medium ${getHealthScoreColor(node.current_health_score)}`}>
-                  {node.current_health_score}%
-                </span>
-              </div>
+            <div className="flex items-center">
               {hasChildren && (
-                <p className="text-xs text-slate-500 mt-1">
-                  Avg: {aggregateHealth}%
-                </p>
+                <Badge variant="outline" className="text-xs">
+                  {node.components.length}{" "}
+                  {node.components.length === 1 ? "component" : "components"}
+                </Badge>
               )}
             </div>
 
             <div className="flex items-center justify-end gap-2">
-              {hasChildren && (
-                <Badge variant="outline" className="text-xs">
-                  {node.children.length} {node.children.length === 1 ? 'child' : 'children'}
-                </Badge>
-              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -245,11 +245,9 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           </div>
         </div>
 
-        {/* Render children */}
+        {/* Render nested components */}
         {hasChildren && isExpanded && (
-          <div>
-            {node.children.map(child => renderTreeNode(child))}
-          </div>
+          <div>{node.components.map((child) => renderTreeNode(child))}</div>
         )}
       </div>
     );
@@ -270,14 +268,15 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       <div>
         <h2 className="text-2xl text-slate-900 mb-1">Asset Hierarchy</h2>
         <p className="text-slate-600">
-          Interactive tree view of asset relationships. Drag and drop to reorganize.
+          Interactive tree view of asset relationships. Drag and drop to
+          reorganize.
         </p>
       </div>
 
       {/* Alerts */}
       {success && (
         <Alert className="bg-green-50 text-green-900 border-green-200">
-          <CheckCircle2 className="h-4 w-4" />
+          <CheckCircle className="h-4 w-4" />
           <AlertDescription>{success}</AlertDescription>
         </Alert>
       )}
@@ -298,7 +297,6 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
             <ul className="list-disc list-inside space-y-1">
               <li>Click the arrow icons to expand/collapse asset children</li>
               <li>Drag and drop assets to reorganize the hierarchy</li>
-              <li>Health scores show individual and aggregate values for parent assets</li>
               <li>Changes are saved automatically to the backend</li>
             </ul>
           </div>
@@ -319,12 +317,15 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       {/* Tree View */}
       <Card className="p-4">
         <div className="mb-4">
-          <div className="grid grid-cols-5 gap-4 px-3 pb-3 border-b">
+          <div className="grid grid-cols-4 gap-4 px-3 pb-3 border-b">
             <div className="text-sm text-slate-600 font-medium">Asset Name</div>
-            <div className="text-sm text-slate-600 font-medium">Serial Number</div>
-            <div className="text-sm text-slate-600 font-medium">Status</div>
-            <div className="text-sm text-slate-600 font-medium">Health Score</div>
-            <div className="text-sm text-slate-600 font-medium text-right">Info</div>
+            <div className="text-sm text-slate-600 font-medium">
+              Serial Number
+            </div>
+            <div className="text-sm text-slate-600 font-medium">Components</div>
+            <div className="text-sm text-slate-600 font-medium text-right">
+              Info
+            </div>
           </div>
         </div>
 
@@ -334,7 +335,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           </div>
         ) : (
           <div className="space-y-1">
-            {treeData.map(node => renderTreeNode(node))}
+            {treeData.map((node) => renderTreeNode(node))}
           </div>
         )}
       </Card>
@@ -350,11 +351,13 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           <p className="text-3xl text-slate-900">{treeData.length}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-slate-600 mb-1">Average Health</p>
-          <p className={`text-3xl ${getHealthScoreColor(
-            Math.round(assets.reduce((sum, a) => sum + a.current_health_score, 0) / assets.length)
-          )}`}>
-            {Math.round(assets.reduce((sum, a) => sum + a.current_health_score, 0) / assets.length)}%
+          <p className="text-sm text-slate-600 mb-1">Assets With Children</p>
+          <p className="text-3xl text-slate-900">
+            {
+              assets.filter((a) =>
+                assets.some((child) => child.parentAssetId === a.id)
+              ).length
+            }
           </p>
         </Card>
       </div>
