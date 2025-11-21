@@ -331,7 +331,7 @@ export const sparePartApi = {
 export const assetTypePartApi = {
   async getAll() {
     try {
-      const response = await axios.get(`${API_BASE_URL}/asset-type-parts`);
+      const response = await axios.get(`${API_BASE_URL}/boms`);
       return response.data;
     } catch (err: any) {
       const message =
@@ -361,7 +361,7 @@ export const assetTypePartApi = {
   async create(mapping: Omit<AssetTypePart, "id" | "createdAt" | "updatedAt">) {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/asset-type-parts`,
+        `${API_BASE_URL}/boms`,
         mapping
       );
       return response.data;
@@ -377,7 +377,7 @@ export const assetTypePartApi = {
   async update(id: string, mapping: Partial<AssetTypePart>) {
     try {
       const response = await axios.put(
-        `${API_BASE_URL}/asset-type-parts/${encodeURIComponent(id)}`,
+        `${API_BASE_URL}/boms/${encodeURIComponent(id)}`,
         mapping
       );
       return response.data;
@@ -393,7 +393,7 @@ export const assetTypePartApi = {
   async delete(id: string) {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/asset-type-parts/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/boms/${encodeURIComponent(id)}`
       );
       return response.data;
     } catch (err: any) {
