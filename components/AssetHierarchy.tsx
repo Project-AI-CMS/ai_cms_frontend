@@ -45,18 +45,82 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       const list = Array.isArray(response)
         ? response
         : response && (response.data ?? []);
-      // normalize snake_case -> camelCase for assets
-      const normalized: Asset[] = (list as any[]).map((a) => ({
-        id: a.id,
-        name: a.name,
-        serialNumber: a.serial_number ?? a.serialNumber ?? "",
-        assetTypeId: a.asset_type_id ?? a.assetTypeId ?? "",
-        locationId: a.location_id ?? a.locationId ?? "",
-        parentAssetId: a.parent_asset_id ?? a.parentAssetId ?? null,
-        installationDate: a.installation_date ?? a.installationDate ?? "",
-      }));
-      setAssets(normalized);
-      buildTree(normalized);
+      // If API returned a nested tree (components/children arrays), preserve it.
+      const asArray = list as unknown as Array<Record<string, unknown>>;
+      const isNested = asArray.some(
+        (a) => Array.isArray(a["components"]) || Array.isArray(a["children"])
+      );
+
+      if (isNested) {
+        // Map nested response into TreeNode structure and also flatten assets for stats
+        const flattened: Asset[] = [];
+
+        const mapNested = (
+          node: Record<string, unknown>,
+          level = 0
+        ): TreeNode => {
+          const get = (k1: string, k2?: string) => {
+            return (node[k1] ?? (k2 ? node[k2] : undefined)) as unknown;
+          };
+
+          const mapped: TreeNode = {
+            id: String(get("id")),
+            name: String(get("name") ?? ""),
+            serialNumber: String(get("serial_number", "serialNumber") ?? ""),
+            assetTypeId: String(get("asset_type_id", "assetTypeId") ?? ""),
+            locationId: String(get("location_id", "locationId") ?? ""),
+            parentAssetId: (node["parent_asset_id"] ??
+              node["parentAssetId"]) as string | null,
+            installationDate: String(
+              get("installation_date", "installationDate") ?? ""
+            ),
+            components: [],
+            level,
+            currentHealthScore: (node["current_health_score"] ??
+              node["currentHealthScore"]) as number | undefined,
+          } as TreeNode;
+
+          flattened.push({
+            id: mapped.id,
+            name: mapped.name,
+            serialNumber: mapped.serialNumber,
+            assetTypeId: mapped.assetTypeId,
+            locationId: mapped.locationId,
+            parentAssetId: mapped.parentAssetId ?? null,
+            installationDate: mapped.installationDate,
+          } as Asset);
+
+          const children = (node["components"] ??
+            node["children"] ??
+            []) as Array<Record<string, unknown>>;
+          mapped.components = children.map((c) => mapNested(c, level + 1));
+          return mapped;
+        };
+
+        const roots = asArray.map((n) => mapNested(n, 0));
+        setTreeData(roots);
+        setAssets(flattened);
+        setExpandedNodes(new Set(roots.map((n) => n.id)));
+      } else {
+        // normalize snake_case -> camelCase for assets (flat list)
+        const normalized: Asset[] = (
+          list as unknown as Array<Record<string, unknown>>
+        ).map((a) => ({
+          id: String(a["id"] ?? ""),
+          name: String(a["name"] ?? ""),
+          serialNumber: String(a["serial_number"] ?? a["serialNumber"] ?? ""),
+          assetTypeId: String(a["asset_type_id"] ?? a["assetTypeId"] ?? ""),
+          locationId: String(a["location_id"] ?? a["locationId"] ?? ""),
+          parentAssetId: (a["parent_asset_id"] ?? a["parentAssetId"]) as
+            | string
+            | null,
+          installationDate: String(
+            a["installation_date"] ?? a["installationDate"] ?? ""
+          ),
+        }));
+        setAssets(normalized);
+        buildTree(normalized);
+      }
     } catch (err) {
       console.error("Failed to fetch assets:", err);
       setError("Failed to load asset hierarchy");
@@ -81,7 +145,11 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
         ...asset,
         components: [],
         level: 0,
-        currentHealthScore: (asset as any).currentHealthScore,
+        currentHealthScore:
+          (asset as unknown as Record<string, unknown>)[
+            "current_health_score"
+          ] ??
+          (asset as unknown as Record<string, unknown>)["currentHealthScore"],
       };
       assetMap.set(asset.id, node);
     });
@@ -159,10 +227,9 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       fetchAssets(); // Refresh the tree
     } catch (err) {
       // Normalize error to a string before updating state
+      const e = err as unknown as Record<string, unknown>;
       const message =
-        (err &&
-          typeof (err as any).message === "string" &&
-          (err as any).message) ||
+        (e && typeof e["message"] === "string" && (e["message"] as string)) ||
         (typeof err === "string" ? err : "Failed to update hierarchy");
       setError(message);
       setTimeout(() => setError(""), 3000);
@@ -341,7 +408,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
       </Card>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-4">
           <p className="text-sm text-slate-600 mb-1">Total Assets</p>
           <p className="text-3xl text-slate-900">{assets.length}</p>
@@ -350,16 +417,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           <p className="text-sm text-slate-600 mb-1">Root Assets</p>
           <p className="text-3xl text-slate-900">{treeData.length}</p>
         </Card>
-        <Card className="p-4">
-          <p className="text-sm text-slate-600 mb-1">Assets With Children</p>
-          <p className="text-3xl text-slate-900">
-            {
-              assets.filter((a) =>
-                assets.some((child) => child.parentAssetId === a.id)
-              ).length
-            }
-          </p>
-        </Card>
+        
       </div>
     </div>
   );

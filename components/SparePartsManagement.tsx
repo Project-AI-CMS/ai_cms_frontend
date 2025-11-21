@@ -123,7 +123,6 @@ export function SparePartsManagement() {
   const outOfStockParts = spareParts.filter(
     (p) => p.quantityOnHand === 0
   ).length;
-  const totalValue = 0; // unit_cost removed from schema
 
   // Form validation
   const validateForm = (): boolean => {
@@ -332,19 +331,7 @@ export function SparePartsManagement() {
             </div>
           </div>
         </Card>
-        <Card className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <Package className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Total Value</p>
-              <p className="text-xl text-slate-900">
-                ¥{(totalValue / 1000000).toFixed(1)}M
-              </p>
-            </div>
-          </div>
-        </Card>
+        
       </div>
 
       {/* Search and Actions */}
@@ -571,21 +558,6 @@ export function SparePartsManagement() {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="edit_partNumber">Part Number *</Label>
-              <Input
-                id="edit_partNumber"
-                value={formData.partNumber}
-                onChange={(e) =>
-                  setFormData({ ...formData, partNumber: e.target.value })
-                }
-              />
-              {formErrors.partNumber && (
-                <p className="text-xs text-red-600 mt-1">
-                  {formErrors.partNumber}
-                </p>
-              )}
-            </div>
-            <div>
               <Label htmlFor="edit_name">Part Name *</Label>
               <Input
                 id="edit_name"
@@ -608,26 +580,6 @@ export function SparePartsManagement() {
                 }
                 rows={3}
               />
-            </div>
-            <div>
-              <Label htmlFor="edit_quantityOnHand">Quantity on Hand *</Label>
-              <Input
-                id="edit_quantityOnHand"
-                type="number"
-                value={formData.quantityOnHand}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    quantityOnHand: parseInt(e.target.value) || 0,
-                  })
-                }
-                min="0"
-              />
-              {formErrors.quantityOnHand && (
-                <p className="text-xs text-red-600 mt-1">
-                  {formErrors.quantityOnHand}
-                </p>
-              )}
             </div>
             <div>
               <Label htmlFor="edit_reorderThreshold">Reorder Threshold *</Label>

@@ -32,7 +32,6 @@ import {
 } from "./ui/select";
 import {
   Plus,
-  Edit,
   Trash2,
   AlertCircle,
   CheckCircle2,
@@ -75,7 +74,6 @@ export function AssetTypePartsMapping({
   const [searchTerm, setSearchTerm] = useState("");
   const [filterAssetType, setFilterAssetType] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMapping, setSelectedMapping] = useState<AssetTypePart | null>(
     null
@@ -96,29 +94,29 @@ export function AssetTypePartsMapping({
     id: raw.id,
     name: raw.name,
     description: raw.description,
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
   });
 
   const normalizeSparePart = (raw: any): SparePart => ({
     id: raw.id,
-    partNumber: raw.part_number,
+    partNumber: raw.partNumber,
     name: raw.name,
     description: raw.description,
-    quantityOnHand: raw.quantity_on_hand,
-    reorderThreshold: raw.reorder_threshold,
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
+    quantityOnHand: raw.quantityOnHand,
+    reorderThreshold: raw.reorderThreshold,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
   });
 
   const normalizeMapping = (raw: any): AssetTypePart => ({
     id: raw.id,
-    partId: raw.part_id,
-    assetTypeId: raw.asset_type_id,
-    quantityPerAsset: raw.quantity_per_asset,
-    positionReference: raw.position_reference || "",
-    createdAt: raw.created_at,
-    updatedAt: raw.updated_at,
+    partId: raw.partId,
+    assetTypeId: raw.assetTypeId,
+    quantityPerAsset: raw.quantityPerAsset,
+    positionReference: raw.positionReference || "",
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
   });
 
   const loadData = useCallback(async () => {
@@ -208,10 +206,10 @@ export function AssetTypePartsMapping({
     setSaving(true);
     try {
       const payload = {
-        part_id: formData.partId,
-        asset_type_id: formData.assetTypeId,
-        quantity_per_asset: formData.quantityPerAsset,
-        position_reference: formData.positionReference || undefined,
+        partId: formData.partId,
+        assetTypeId: formData.assetTypeId,
+        quantityPerAsset: formData.quantityPerAsset,
+        positionReference: formData.positionReference || undefined,
       };
       const created = await assetTypePartApi.create(payload);
       const createdObj = Array.isArray(created) ? created[0] : created;
@@ -232,45 +230,12 @@ export function AssetTypePartsMapping({
     }
   };
 
-  const handleEdit = async () => {
-    if (!selectedMapping || !validateForm()) return;
-    setSaving(true);
-    try {
-      const payload = {
-        part_id: formData.partId,
-        asset_type_id: formData.assetTypeId,
-        quantity_per_asset: formData.quantityPerAsset,
-        position_reference: formData.positionReference || undefined,
-      };
-      const updated = await assetTypePartApi.update(
-        selectedMapping.id,
-        payload
-      );
-      const normalized = normalizeMapping(updated);
-      setMappings((prev) =>
-        prev.map((m) => (m.id === normalized.id ? normalized : m))
-      );
-      setSuccessMessage("Mapping updated successfully");
-      setIsEditDialogOpen(false);
-      setSelectedMapping(null);
-      setFormData(initialFormData);
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } catch (err: any) {
-      setErrorMessage(
-        err?.response?.data?.message ||
-          err.message ||
-          "Failed to update mapping"
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleDelete = async () => {
     if (!selectedMapping) return;
     setSaving(true);
     try {
-      await assetTypePartApi.delete(selectedMapping.id);
+      await assetTypePartApi.delete(selectedMapping.assetTypeId, selectedMapping.partId);
       setMappings((prev) => prev.filter((m) => m.id !== selectedMapping.id));
       setSuccessMessage("Mapping deleted successfully");
       setIsDeleteDialogOpen(false);
@@ -287,18 +252,6 @@ export function AssetTypePartsMapping({
     }
   };
 
-  const openEditDialog = (mapping: AssetTypePart) => {
-    setSelectedMapping(mapping);
-    setFormData({
-      partId: mapping.partId,
-      assetTypeId: mapping.assetTypeId,
-      quantityPerAsset: mapping.quantityPerAsset,
-      positionReference: mapping.positionReference,
-    });
-    setFormErrors({});
-    setErrorMessage("");
-    setIsEditDialogOpen(true);
-  };
 
   const openDeleteDialog = (mapping: AssetTypePart) => {
     setSelectedMapping(mapping);
@@ -499,14 +452,6 @@ export function AssetTypePartsMapping({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openEditDialog(mapping)}
-                            disabled={saving}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
                             onClick={() => openDeleteDialog(mapping)}
                             disabled={saving}
                           >
@@ -654,120 +599,6 @@ export function AssetTypePartsMapping({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Mapping</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="editAssetTypeId">Asset Type *</Label>
-              <Select
-                value={formData.assetTypeId}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, assetTypeId: value });
-                  setFormErrors({ ...formErrors, assetTypeId: undefined });
-                  setErrorMessage("");
-                }}
-              >
-                <SelectTrigger
-                  className={formErrors.assetTypeId ? "border-red-500" : ""}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {assetTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.assetTypeId && (
-                <p className="text-xs text-red-600 mt-1">
-                  {formErrors.assetTypeId}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="editPartId">Spare Part *</Label>
-              <Select
-                value={formData.partId}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, partId: value });
-                  setFormErrors({ ...formErrors, partId: undefined });
-                  setErrorMessage("");
-                }}
-              >
-                <SelectTrigger
-                  className={formErrors.partId ? "border-red-500" : ""}
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {spareParts.map((part) => (
-                    <SelectItem key={part.id} value={part.id}>
-                      {part.name} ({part.partNumber})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {formErrors.partId && (
-                <p className="text-xs text-red-600 mt-1">{formErrors.partId}</p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="editQuantityPerAsset">Quantity per Asset *</Label>
-              <Input
-                id="editQuantityPerAsset"
-                type="number"
-                value={String(formData.quantityPerAsset)}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    quantityPerAsset: parseInt(e.target.value) || 0,
-                  })
-                }
-                min={1}
-              />
-              {formErrors.quantityPerAsset && (
-                <p className="text-xs text-red-600 mt-1">
-                  {formErrors.quantityPerAsset}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <Label htmlFor="editPositionReference">Position Reference</Label>
-              <Input
-                id="editPositionReference"
-                value={formData.positionReference}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    positionReference: e.target.value,
-                  })
-                }
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-              disabled={saving}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleEdit} disabled={saving}>
-              {saving ? "Saving..." : "Update Mapping"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog

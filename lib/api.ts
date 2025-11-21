@@ -133,7 +133,7 @@ export const assetApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}/hierarchy`,
-        { parentId }
+        { parentAssetId: parentId }
       );
       return response.data;
     } catch (err: any) {
@@ -390,10 +390,10 @@ export const assetTypePartApi = {
     }
   },
 
-  async delete(id: string) {
+  async delete(assetTypeId: string, partId: string) {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/boms/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(assetTypeId)}/parts/${encodeURIComponent(partId)}`
       );
       return response.data;
     } catch (err: any) {
