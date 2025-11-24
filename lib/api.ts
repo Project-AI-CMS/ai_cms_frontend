@@ -2,380 +2,406 @@
 // This is a mock implementation that simulates API calls
 // Replace with actual API endpoints when backend is ready
 
-import { Asset, AssetType, Location, SparePart, AssetTypePart, UserRole } from '@/types';
+import axios from "axios";
+import {
+  Asset,
+  AssetType,
+  Location,
+  SparePart,
+  AssetTypePart,
+  UserRole,
+} from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-// Mock data for development
-const mockAssets: Asset[] = [
-  {
-    id: 'asset-1',
-    name: 'Steam Turbine Unit 1',
-    model_number: 'ST-600-HP',
-    serial_number: 'ST600HP-2018-001',
-    asset_type_id: 'type-1',
-    location_id: 'loc-1',
-    parent_asset_id: null,
-    installation_date: '2018-03-15',
-    current_health_score: 92,
-    current_status: 'operational',
-    manufacturer: 'Harbin Electric',
-    rated_power: '600 MW',
-    service_life: '30 years'
-  },
-  {
-    id: 'asset-2',
-    name: 'High Pressure Rotor',
-    model_number: 'HPR-600',
-    serial_number: 'HPR600-2018-001',
-    asset_type_id: 'type-2',
-    location_id: 'loc-1',
-    parent_asset_id: 'asset-1',
-    installation_date: '2018-03-15',
-    current_health_score: 45,
-    current_status: 'pending_repair',
-    manufacturer: 'Harbin Electric'
-  },
-  {
-    id: 'asset-3',
-    name: 'Generator Unit 1',
-    model_number: 'GEN-600-3PH',
-    serial_number: 'GEN600-2018-002',
-    asset_type_id: 'type-3',
-    location_id: 'loc-2',
-    parent_asset_id: null,
-    installation_date: '2018-03-15',
-    current_health_score: 87,
-    current_status: 'operational',
-    manufacturer: 'Dongfang Electric',
-    rated_power: '600 MW'
-  },
-  {
-    id: 'asset-4',
-    name: 'Boiler Feed Pump',
-    model_number: 'BFP-2000',
-    serial_number: 'BFP2000-2018-003',
-    asset_type_id: 'type-4',
-    location_id: 'loc-3',
-    parent_asset_id: null,
-    installation_date: '2018-02-10',
-    current_health_score: 68,
-    current_status: 'under_repair',
-    manufacturer: 'Shenyang Pumps'
-  }
-];
 
-const mockAssetTypes: AssetType[] = [
-  { id: 'type-1', name: 'Steam Turbine', description: 'High-pressure steam turbines for power generation' },
-  { id: 'type-2', name: 'Rotor Assembly', description: 'Turbine rotor components' },
-  { id: 'type-3', name: 'Generator', description: 'Electrical power generators' },
-  { id: 'type-4', name: 'Pump', description: 'Industrial pumps for various applications' },
-  { id: 'type-5', name: 'Transformer', description: 'Electrical transformers' }
-];
-
-const mockLocations: Location[] = [
-  { id: 'loc-1', name: 'Turbine Hall - Unit 1', description: 'Main turbine hall for Unit 1' },
-  { id: 'loc-2', name: 'Generator Hall - Unit 1', description: 'Generator hall for Unit 1' },
-  { id: 'loc-3', name: 'Boiler House - Unit 1', description: 'Boiler house for Unit 1' },
-  { id: 'loc-4', name: 'Transformer Yard', description: 'Main transformer yard' }
-];
-
-const mockSpareParts: SparePart[] = [
-  {
-    id: 'part-1',
-    part_number: 'BRG-001',
-    name: 'Turbine Bearing',
-    description: 'High-speed turbine bearing',
-    quantity_on_hand: 5,
-    reorder_threshold: 2,
-    unit_cost: 15000,
-    supplier: 'SKF Bearings'
-  },
-  {
-    id: 'part-2',
-    part_number: 'SEAL-002',
-    name: 'Steam Seal',
-    description: 'High-temperature steam seal',
-    quantity_on_hand: 12,
-    reorder_threshold: 5,
-    unit_cost: 2500,
-    supplier: 'John Crane'
-  },
-  {
-    id: 'part-3',
-    part_number: 'BLADE-003',
-    name: 'Turbine Blade',
-    description: 'HP turbine blade set',
-    quantity_on_hand: 1,
-    reorder_threshold: 1,
-    unit_cost: 85000,
-    supplier: 'Harbin Electric'
-  }
-];
-
-const mockAssetTypeParts: AssetTypePart[] = [
-  {
-    id: 'atp-1',
-    part_id: 'part-1',
-    asset_type_id: 'type-1',
-    quantity_per_asset: 4,
-    position_reference: 'Main shaft bearings'
-  },
-  {
-    id: 'atp-2',
-    part_id: 'part-2',
-    asset_type_id: 'type-1',
-    quantity_per_asset: 8,
-    position_reference: 'Steam inlet/outlet seals'
-  }
-];
 
 // Simulate API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Asset API
+/*
+  The original `assetApi` used mock data for development and has been
+  commented out below. The new implementation (following this comment)
+  uses axios to call the real backend at `API_BASE_URL`.
+
+  Keep the same method names and signatures to avoid breaking callers.
+*/
+
+/* export const assetApi = {
+  // ... original mock implementation (commented out)
+}; */
+
 export const assetApi = {
-  async getAll(params?: { page?: number; limit?: number; status?: string; search?: string; userRole?: UserRole }) {
-    await delay(300);
-    let filtered = [...mockAssets];
-    
-    // Filter by status
-    if (params?.status && params.status !== 'all') {
-      filtered = filtered.filter(a => a.current_status === params.status);
-    }
-    
-    // Search
-    if (params?.search) {
-      const search = params.search.toLowerCase();
-      filtered = filtered.filter(a => 
-        a.name.toLowerCase().includes(search) ||
-        a.model_number.toLowerCase().includes(search) ||
-        a.serial_number.toLowerCase().includes(search)
-      );
-    }
-    
-    // RBAC: Technicians see only assigned assets (simplified)
-    if (params?.userRole === 'Maintenance Worker') {
-      filtered = filtered.slice(0, 2); // Mock: show only first 2 assets
-    }
-    
-    const page = params?.page || 1;
-    const limit = params?.limit || 10;
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    
-    return {
-      data: filtered.slice(start, end),
-      pagination: {
-        page,
-        limit,
-        total: filtered.length,
-        totalPages: Math.ceil(filtered.length / limit)
+  async getAll(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+    userRole?: UserRole;
+  }) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/assets`, { params });
+      // Expecting backend to return { data: [...], pagination: { ... } }
+      const resp = response.data;
+      if (resp && (resp.data || Array.isArray(resp))) {
+        return resp;
       }
-    };
+      // Fallback: wrap array responses
+      return {
+        data: resp,
+        pagination: {
+          page: params?.page || 1,
+          limit: params?.limit || (Array.isArray(resp) ? resp.length : 0),
+          total: Array.isArray(resp) ? resp.length : 0,
+          totalPages: 1,
+        },
+      };
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Failed to fetch assets";
+      throw new Error(message);
+    }
   },
-  
+
   async getById(id: string) {
-    await delay(200);
-    const asset = mockAssets.find(a => a.id === id);
-    if (!asset) throw new Error('Asset not found');
-    return asset;
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Failed to fetch asset";
+      throw new Error(message);
+    }
   },
-  
-  async create(asset: Omit<Asset, 'id' | 'created_at' | 'updated_at'>) {
-    await delay(400);
-    const newAsset: Asset = {
-      ...asset,
-      id: `asset-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    mockAssets.push(newAsset);
-    return newAsset;
+
+  async create(asset: Omit<Asset, "id" | "createdAt" | "updatedAt">) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/assets`, asset);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Failed to create asset";
+      throw new Error(message);
+    }
   },
-  
+
   async update(id: string, asset: Partial<Asset>) {
-    await delay(400);
-    const index = mockAssets.findIndex(a => a.id === id);
-    if (index === -1) throw new Error('Asset not found');
-    mockAssets[index] = { ...mockAssets[index], ...asset, updated_at: new Date().toISOString() };
-    return mockAssets[index];
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`,
+        asset
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Failed to update asset";
+      throw new Error(message);
+    }
   },
-  
+
   async delete(id: string) {
-    await delay(300);
-    const index = mockAssets.findIndex(a => a.id === id);
-    if (index === -1) throw new Error('Asset not found');
-    mockAssets.splice(index, 1);
-    return { success: true };
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Failed to delete asset";
+      throw new Error(message);
+    }
   },
-  
+
   async getHierarchy() {
-    await delay(300);
-    return mockAssets;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/assets/hierarchies`);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch asset hierarchy";
+      throw new Error(message);
+    }
   },
-  
+
   async updateHierarchy(id: string, parentId: string | null) {
-    await delay(400);
-    const index = mockAssets.findIndex(a => a.id === id);
-    if (index === -1) throw new Error('Asset not found');
-    mockAssets[index].parent_asset_id = parentId;
-    return mockAssets[index];
-  }
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}/hierarchy`,
+        { parentAssetId: parentId }
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update asset hierarchy";
+      throw new Error(message);
+    }
+  },
 };
 
 // Asset Type API
 export const assetTypeApi = {
   async getAll() {
-    await delay(200);
-    return mockAssetTypes;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/asset-types`);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch asset types";
+      throw new Error(message);
+    }
   },
-  
+
   async getById(id: string) {
-    await delay(200);
-    const type = mockAssetTypes.find(t => t.id === id);
-    if (!type) throw new Error('Asset type not found');
-    return type;
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Asset type not found";
+      throw new Error(message);
+    }
   },
-  
-  async create(assetType: Omit<AssetType, 'id' | 'created_at' | 'updated_at'>) {
-    await delay(400);
-    const newType: AssetType = {
-      ...assetType,
-      id: `type-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    mockAssetTypes.push(newType);
-    return newType;
+
+  async create(assetType: Omit<AssetType, "id" | "createdAt" | "updatedAt">) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/asset-types`,
+        assetType
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to create asset type";
+      throw new Error(message);
+    }
   },
-  
+
   async update(id: string, assetType: Partial<AssetType>) {
-    await delay(400);
-    const index = mockAssetTypes.findIndex(t => t.id === id);
-    if (index === -1) throw new Error('Asset type not found');
-    mockAssetTypes[index] = { ...mockAssetTypes[index], ...assetType, updated_at: new Date().toISOString() };
-    return mockAssetTypes[index];
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`,
+        assetType
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update asset type";
+      throw new Error(message);
+    }
   },
-  
+
   async delete(id: string) {
-    await delay(300);
-    // Check if in use
-    const inUse = mockAssets.some(a => a.asset_type_id === id);
-    if (inUse) throw new Error('Cannot delete asset type that is in use');
-    
-    const index = mockAssetTypes.findIndex(t => t.id === id);
-    if (index === -1) throw new Error('Asset type not found');
-    mockAssetTypes.splice(index, 1);
-    return { success: true };
-  }
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to delete asset type";
+      throw new Error(message);
+    }
+  },
 };
 
 // Location API
 export const locationApi = {
   async getAll() {
-    await delay(200);
-    return mockLocations;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/locations`);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch locations";
+      throw new Error(message);
+    }
   },
-  
+
   async getById(id: string) {
-    await delay(200);
-    const location = mockLocations.find(l => l.id === id);
-    if (!location) throw new Error('Location not found');
-    return location;
-  }
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/locations/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Location not found";
+      throw new Error(message);
+    }
+  },
 };
 
 // Spare Part API
 export const sparePartApi = {
   async getAll() {
-    await delay(200);
-    return mockSpareParts;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/spare-parts`);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch spare parts";
+      throw new Error(message);
+    }
   },
-  
+
   async getById(id: string) {
-    await delay(200);
-    const part = mockSpareParts.find(p => p.id === id);
-    if (!part) throw new Error('Spare part not found');
-    return part;
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || err.message || "Spare part not found";
+      throw new Error(message);
+    }
   },
-  
-  async create(sparePart: Omit<SparePart, 'id' | 'created_at' | 'updated_at'>) {
-    await delay(400);
-    const newPart: SparePart = {
-      ...sparePart,
-      id: `part-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    mockSpareParts.push(newPart);
-    return newPart;
+
+  async create(sparePart: Omit<SparePart, "id" | "createdAt" | "updatedAt">) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/spare-parts`,
+        sparePart
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to create spare part";
+      throw new Error(message);
+    }
   },
-  
+
   async update(id: string, sparePart: Partial<SparePart>) {
-    await delay(400);
-    const index = mockSpareParts.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Spare part not found');
-    mockSpareParts[index] = { ...mockSpareParts[index], ...sparePart, updated_at: new Date().toISOString() };
-    return mockSpareParts[index];
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`,
+        sparePart
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update spare part";
+      throw new Error(message);
+    }
   },
-  
+
   async delete(id: string) {
-    await delay(300);
-    // Check if in use
-    const inUse = mockAssetTypeParts.some(atp => atp.part_id === id);
-    if (inUse) throw new Error('Cannot delete spare part that is in use');
-    
-    const index = mockSpareParts.findIndex(p => p.id === id);
-    if (index === -1) throw new Error('Spare part not found');
-    mockSpareParts.splice(index, 1);
-    return { success: true };
-  }
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to delete spare part";
+      throw new Error(message);
+    }
+  },
 };
 
 // Asset Type Parts API (Many-to-Many)
 export const assetTypePartApi = {
   async getAll() {
-    await delay(200);
-    return mockAssetTypeParts;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/boms`);
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch asset type parts";
+      throw new Error(message);
+    }
   },
-  
+
   async getByAssetType(assetTypeId: string) {
-    await delay(200);
-    return mockAssetTypeParts.filter(atp => atp.asset_type_id === assetTypeId);
+    try {
+      // Common REST pattern: /asset-types/:id/parts
+      const response = await axios.get(
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to fetch mappings for asset type";
+      throw new Error(message);
+    }
   },
-  
-  async create(mapping: Omit<AssetTypePart, 'id' | 'created_at' | 'updated_at'>) {
-    await delay(400);
-    // Check for duplicate
-    const exists = mockAssetTypeParts.some(
-      atp => atp.part_id === mapping.part_id && atp.asset_type_id === mapping.asset_type_id
-    );
-    if (exists) throw new Error('This mapping already exists');
-    
-    const newMapping: AssetTypePart = {
-      ...mapping,
-      id: `atp-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    mockAssetTypeParts.push(newMapping);
-    return newMapping;
+
+  async create(mapping: Omit<AssetTypePart, "id" | "createdAt" | "updatedAt">) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/boms`,
+        mapping
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to create mapping";
+      throw new Error(message);
+    }
   },
-  
+
   async update(id: string, mapping: Partial<AssetTypePart>) {
-    await delay(400);
-    const index = mockAssetTypeParts.findIndex(atp => atp.id === id);
-    if (index === -1) throw new Error('Mapping not found');
-    mockAssetTypeParts[index] = { ...mockAssetTypeParts[index], ...mapping, updated_at: new Date().toISOString() };
-    return mockAssetTypeParts[index];
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/boms/${encodeURIComponent(id)}`,
+        mapping
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to update mapping";
+      throw new Error(message);
+    }
   },
-  
-  async delete(id: string) {
-    await delay(300);
-    const index = mockAssetTypeParts.findIndex(atp => atp.id === id);
-    if (index === -1) throw new Error('Mapping not found');
-    mockAssetTypeParts.splice(index, 1);
-    return { success: true };
-  }
+
+  async delete(assetTypeId: string, partId: string) {
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(assetTypeId)}/parts/${encodeURIComponent(partId)}`
+      );
+      return response.data;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err.message ||
+        "Failed to delete mapping";
+      throw new Error(message);
+    }
+  },
 };
