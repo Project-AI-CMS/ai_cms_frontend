@@ -5,24 +5,39 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Alert, AlertDescription } from "./ui/alert";
 import {
-  ArrowLeft,
-  Save,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react";
-import { 
-  WorkOrder, 
-  WorkOrderType, 
-  WorkOrderStatus, 
-  WorkOrderPriority, 
-  Asset, 
-  User, 
-  UserInfo 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Alert, AlertDescription } from "./ui/alert";
+import { ArrowLeft, Save, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  WorkOrder,
+  WorkOrderType,
+  WorkOrderStatus,
+  WorkOrderPriority,
+  Asset,
+  User,
+  UserInfo,
 } from "@/types";
-import { workOrderApi, assetApi, userApi } from "@/lib/api";
+import { workOrderApi, assetApi } from "@/lib/api";
+// Mock technicians list — use this instead of fetching from `userApi`
+const MOCK_TECHNICIANS: User[] = [
+  {
+    id: "tech-1",
+    name: "Alice Johnson",
+    email: "alice.johnson@example.com",
+  } as User,
+  { id: "tech-2", name: "Bob Smith", email: "bob.smith@example.com" } as User,
+  {
+    id: "tech-3",
+    name: "Carlos Rivera",
+    email: "carlos.rivera@example.com",
+  } as User,
+];
 
 type WorkOrderFormProps = {
   workOrderId?: string; // undefined for create, id for edit
@@ -31,27 +46,32 @@ type WorkOrderFormProps = {
   onSuccess: () => void;
 };
 
-export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrderFormProps) {
-  const isEdit = !!workOrderId && workOrderId !== 'new';
-  
+export function WorkOrderForm({
+  workOrderId,
+  user,
+  onBack,
+  onSuccess,
+}: WorkOrderFormProps) {
+  const isEdit = !!workOrderId && workOrderId !== "new";
+
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    workOrderType: 'preventive_maintenance' as WorkOrderType,
-    status: 'draft' as WorkOrderStatus,
-    priority: 'medium' as WorkOrderPriority,
-    assetId: '',
-    assignedTechnicianId: '',
-    scheduledDate: '',
-    estimatedHours: '',
+    title: "",
+    description: "",
+    workOrderType: "preventive_maintenance" as WorkOrderType,
+    status: "draft" as WorkOrderStatus,
+    priority: "medium" as WorkOrderPriority,
+    assetId: "",
+    assignedTechnicianId: "",
+    scheduledDate: "",
+    estimatedHours: "",
   });
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [technicians, setTechnicians] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -60,11 +80,8 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
 
   const fetchFormData = async () => {
     try {
-      // Fetch dropdown data
-      const [assetsData, techniciansData] = await Promise.all([
-        assetApi.getAll({}),
-        userApi.getAll({ role: 'Maintenance Worker' })
-      ]);
+      // Fetch dropdown data (assets). Use mock technicians list instead of calling users API.
+      const assetsData = await assetApi.getAll({});
 
       // Handle assets response
       if (Array.isArray(assetsData)) {
@@ -73,12 +90,8 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
         setAssets(assetsData.data || []);
       }
 
-      // Handle technicians response
-      if (Array.isArray(techniciansData)) {
-        setTechnicians(techniciansData);
-      } else {
-        setTechnicians(techniciansData.data || []);
-      }
+      // Use mock technicians list
+      setTechnicians(MOCK_TECHNICIANS);
 
       // If editing, fetch work order data
       if (isEdit) {
@@ -90,13 +103,15 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
           status: workOrderData.status,
           priority: workOrderData.priority,
           assetId: workOrderData.assetId,
-          assignedTechnicianId: workOrderData.assignedTechnicianId || '',
-          scheduledDate: workOrderData.scheduledDate ? workOrderData.scheduledDate.split('T')[0] : '',
-          estimatedHours: workOrderData.estimatedHours?.toString() || '',
+          assignedTechnicianId: workOrderData.assignedTechnicianId || "",
+          scheduledDate: workOrderData.scheduledDate
+            ? workOrderData.scheduledDate.split("T")[0]
+            : "",
+          estimatedHours: workOrderData.estimatedHours?.toString() || "",
         });
       }
     } catch (error) {
-      setError('Failed to load form data');
+      setError("Failed to load form data");
       console.error(error);
     } finally {
       setInitialLoading(false);
@@ -106,11 +121,16 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.assetId) newErrors.assetId = 'Asset is required';
-    if (formData.estimatedHours && (isNaN(Number(formData.estimatedHours)) || Number(formData.estimatedHours) <= 0)) {
-      newErrors.estimatedHours = 'Estimated hours must be a positive number';
+    if (!formData.title.trim()) newErrors.title = "Title is required";
+    if (!formData.description.trim())
+      newErrors.description = "Description is required";
+    if (!formData.assetId) newErrors.assetId = "Asset is required";
+    if (
+      formData.estimatedHours &&
+      (isNaN(Number(formData.estimatedHours)) ||
+        Number(formData.estimatedHours) <= 0)
+    ) {
+      newErrors.estimatedHours = "Estimated hours must be a positive number";
     }
 
     setErrors(newErrors);
@@ -119,11 +139,11 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (!validateForm()) {
-      setError('Please fix the validation errors');
+      setError("Please fix the validation errors");
       return;
     }
 
@@ -133,23 +153,26 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
         ...formData,
         assignedTechnicianId: formData.assignedTechnicianId || undefined,
         scheduledDate: formData.scheduledDate || undefined,
-        estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : undefined,
+        estimatedHours: formData.estimatedHours
+          ? Number(formData.estimatedHours)
+          : undefined,
         createdBy: user.name, // TODO: Use actual user ID
       };
 
       if (isEdit) {
         await workOrderApi.update(workOrderId, submitData);
-        setSuccess('Work order updated successfully');
+        setSuccess("Work order updated successfully");
       } else {
         await workOrderApi.create(submitData);
-        setSuccess('Work order created successfully');
+        setSuccess("Work order created successfully");
       }
 
       setTimeout(() => {
         onSuccess();
       }, 1500);
     } catch (error: unknown) {
-      const message = (error as { message?: string })?.message || 'Failed to save work order';
+      const message =
+        (error as { message?: string })?.message || "Failed to save work order";
       setError(message);
     } finally {
       setLoading(false);
@@ -157,10 +180,10 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
   };
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field
     if (errors[field]) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
         return newErrors;
@@ -187,10 +210,12 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
         </Button>
         <div>
           <h2 className="text-2xl text-slate-900 mb-1">
-            {isEdit ? 'Edit Work Order' : 'Create New Work Order'}
+            {isEdit ? "Edit Work Order" : "Create New Work Order"}
           </h2>
           <p className="text-slate-600">
-            {isEdit ? 'Update work order information' : 'Create a new work order for maintenance tasks'}
+            {isEdit
+              ? "Update work order information"
+              : "Create a new work order for maintenance tasks"}
           </p>
         </div>
       </div>
@@ -225,27 +250,37 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                   <Input
                     id="title"
                     value={formData.title}
-                    onChange={(e) => handleChange('title', e.target.value)}
+                    onChange={(e) => handleChange("title", e.target.value)}
                     placeholder="Enter work order title"
-                    className={errors.title ? 'border-red-500' : ''}
+                    className={errors.title ? "border-red-500" : ""}
                   />
-                  {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title}</p>}
+                  {errors.title && (
+                    <p className="text-sm text-red-600 mt-1">{errors.title}</p>
+                  )}
                 </div>
 
                 <div>
                   <Label htmlFor="workOrderType">Work Order Type</Label>
                   <Select
                     value={formData.workOrderType}
-                    onValueChange={(value) => handleChange('workOrderType', value)}
+                    onValueChange={(value) =>
+                      handleChange("workOrderType", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="preventive_maintenance">Preventive Maintenance</SelectItem>
-                      <SelectItem value="corrective_maintenance">Corrective Maintenance</SelectItem>
+                      <SelectItem value="preventive_maintenance">
+                        Preventive Maintenance
+                      </SelectItem>
+                      <SelectItem value="corrective_maintenance">
+                        Corrective Maintenance
+                      </SelectItem>
                       <SelectItem value="inspection">Inspection</SelectItem>
-                      <SelectItem value="emergency_repair">Emergency Repair</SelectItem>
+                      <SelectItem value="emergency_repair">
+                        Emergency Repair
+                      </SelectItem>
                       <SelectItem value="installation">Installation</SelectItem>
                       <SelectItem value="decommission">Decommission</SelectItem>
                     </SelectContent>
@@ -256,7 +291,7 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                   <Label htmlFor="priority">Priority</Label>
                   <Select
                     value={formData.priority}
-                    onValueChange={(value) => handleChange('priority', value)}
+                    onValueChange={(value) => handleChange("priority", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -277,27 +312,33 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                   </Label>
                   <Select
                     value={formData.assetId}
-                    onValueChange={(value) => handleChange('assetId', value)}
+                    onValueChange={(value) => handleChange("assetId", value)}
                   >
-                    <SelectTrigger className={errors.assetId ? 'border-red-500' : ''}>
+                    <SelectTrigger
+                      className={errors.assetId ? "border-red-500" : ""}
+                    >
                       <SelectValue placeholder="Select asset" />
                     </SelectTrigger>
                     <SelectContent>
-                      {assets.map(asset => (
+                      {assets.map((asset) => (
                         <SelectItem key={asset.id} value={asset.id}>
                           {asset.name} ({asset.id})
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {errors.assetId && <p className="text-sm text-red-600 mt-1">{errors.assetId}</p>}
+                  {errors.assetId && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.assetId}
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <Label htmlFor="status">Status</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => handleChange('status', value)}
+                    onValueChange={(value) => handleChange("status", value)}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -320,32 +361,47 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                   <Textarea
                     id="description"
                     value={formData.description}
-                    onChange={(e) => handleChange('description', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("description", e.target.value)
+                    }
                     placeholder="Describe the work to be performed..."
                     rows={4}
-                    className={errors.description ? 'border-red-500' : ''}
+                    className={errors.description ? "border-red-500" : ""}
                   />
-                  {errors.description && <p className="text-sm text-red-600 mt-1">{errors.description}</p>}
+                  {errors.description && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.description}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Assignment & Scheduling */}
             <div>
-              <h3 className="text-lg text-slate-900 mb-4">Assignment & Scheduling</h3>
+              <h3 className="text-lg text-slate-900 mb-4">
+                Assignment & Scheduling
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="assignedTechnicianId">Assigned Technician</Label>
+                  <Label htmlFor="assignedTechnicianId">
+                    Assigned Technician
+                  </Label>
                   <Select
                     value={formData.assignedTechnicianId || "unassigned"}
-                    onValueChange={(value) => handleChange('assignedTechnicianId', value === "unassigned" ? "" : value)}
+                    onValueChange={(value) =>
+                      handleChange(
+                        "assignedTechnicianId",
+                        value === "unassigned" ? "" : value
+                      )
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select technician (optional)" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {technicians.map(tech => (
+                      {technicians.map((tech) => (
                         <SelectItem key={tech.id} value={tech.id}>
                           {tech.name} ({tech.email})
                         </SelectItem>
@@ -360,7 +416,9 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                     id="scheduledDate"
                     type="date"
                     value={formData.scheduledDate}
-                    onChange={(e) => handleChange('scheduledDate', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("scheduledDate", e.target.value)
+                    }
                   />
                 </div>
 
@@ -372,11 +430,17 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
                     min="0"
                     step="0.5"
                     value={formData.estimatedHours}
-                    onChange={(e) => handleChange('estimatedHours', e.target.value)}
+                    onChange={(e) =>
+                      handleChange("estimatedHours", e.target.value)
+                    }
                     placeholder="e.g., 4.5"
-                    className={errors.estimatedHours ? 'border-red-500' : ''}
+                    className={errors.estimatedHours ? "border-red-500" : ""}
                   />
-                  {errors.estimatedHours && <p className="text-sm text-red-600 mt-1">{errors.estimatedHours}</p>}
+                  {errors.estimatedHours && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.estimatedHours}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -390,7 +454,11 @@ export function WorkOrderForm({ workOrderId, user, onBack, onSuccess }: WorkOrde
           </Button>
           <Button type="submit" disabled={loading}>
             <Save className="w-4 h-4 mr-2" />
-            {loading ? 'Saving...' : isEdit ? 'Update Work Order' : 'Create Work Order'}
+            {loading
+              ? "Saving..."
+              : isEdit
+              ? "Update Work Order"
+              : "Create Work Order"}
           </Button>
         </div>
       </form>
