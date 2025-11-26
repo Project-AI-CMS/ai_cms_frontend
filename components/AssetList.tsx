@@ -51,12 +51,9 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchAssets();
-  }, [currentPage, user.role]);
-
   const fetchAssets = async () => {
     setLoading(true);
+    setError("");
     try {
       const response = await assetApi.getAll({
         page: currentPage,
@@ -78,8 +75,13 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
         );
         setTotalPages(pagination.totalPages ?? 1);
       }
-    } catch (error) {
-      console.error("Failed to fetch assets:", error);
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message || "Failed to fetch assets";
+      console.error("Failed to fetch assets:", err);
+      setError(message);
+      setAssets([]);
+      setTotal(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -95,6 +97,12 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
       handleSearch();
     }
   };
+
+  // Add fetchAssets to useEffect dependencies
+  useEffect(() => {
+    fetchAssets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, user.role]);
 
   return (
     <div className="space-y-6">
@@ -126,7 +134,7 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
               placeholder="Search by name or serial number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               className="pl-10"
             />
           </div>
@@ -137,12 +145,29 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
         </div>
       </Card>
 
+      {/* Error Alert - Show prominently at top */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Asset Table */}
       <Card className="p-6">
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <p className="text-slate-600 mt-4">Loading assets...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-slate-900 font-medium mb-2">Unable to Load Assets</p>
+            <p className="text-slate-600 text-sm mb-4">{error}</p>
+            <Button onClick={fetchAssets} variant="outline">
+              Try Again
+            </Button>
           </div>
         ) : assets && assets.length === 0 ? (
           <div className="text-center py-12">
@@ -277,18 +302,11 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
         )}
       </Card>
 
-      {/* Alerts */}
+      {/* Success Alert */}
       {success && (
         <Alert className="bg-green-50 text-green-900 border-green-200 mt-4">
           <CheckCircle2 className="h-4 w-4" />
           <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
-
-      {error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

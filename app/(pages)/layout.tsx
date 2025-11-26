@@ -15,6 +15,7 @@ import {
   LogOut,
   Bell,
   Link as LinkIcon,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,12 @@ const menuItems: MenuItem[] = [
     href: "/asset-management",
   },
   {
+    id: "work-orders",
+    label: "Work Orders",
+    icon: Wrench,
+    href: "/work-orders",
+  },
+  {
     id: "spareparts",
     label: "Spare Parts",
     icon: Package,
@@ -82,17 +89,19 @@ export default function PagesLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [currentUser, setCurrentUser] = useState<UserInfo | null>(() => {
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+
+  // Load user from localStorage after mount to avoid hydration mismatch
+  React.useEffect(() => {
     try {
-      const raw =
-        typeof window !== "undefined"
-          ? localStorage.getItem("ai_cms_user")
-          : null;
-      return raw ? JSON.parse(raw) : null;
+      const raw = localStorage.getItem("ai_cms_user");
+      if (raw) {
+        setCurrentUser(JSON.parse(raw));
+      }
     } catch {
-      return null;
+      // Ignore errors
     }
-  });
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("ai_cms_user");

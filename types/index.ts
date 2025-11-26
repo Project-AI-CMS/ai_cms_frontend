@@ -73,3 +73,127 @@ export type PaginationParams = {
   limit: number;
   total: number;
 };
+
+export type WorkOrderType = 
+  | "INSPECTION"
+  | "REPAIR" 
+  | "PREVENTIVE"
+  | "OUTSOURCING";
+
+export type WorkOrderStatus = 
+  | "NEW"
+  | "IN_PROGRESS" 
+  | "PENDING_QC"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "REWORK_REQUIRED";
+
+export type WorkOrderPriority = 
+  | "LOW"
+  | "MEDIUM" 
+  | "HIGH"
+  | "CRITICAL";
+
+export type WorkOrder = {
+  id: string;
+  workOrderType: WorkOrderType;
+  status: WorkOrderStatus;
+  priority?: WorkOrderPriority;
+  assetId: string;
+  assetType?: string;
+  assetName?: string; // For display purposes
+  description: string;
+  originId?: string;
+  originType?: string;
+  createdAt: string;
+  updatedAt: string;
+  version: number;
+};
+
+export type WorkOrderTask = {
+  id: string;
+  workOrderId: string;
+  taskName: string;
+  description: string;
+  sequenceOrder: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type WorkOrderAssignment = {
+  id: string;
+  workOrderId: string;
+  userId: string;
+  userName?: string; // For display
+  assignmentRole: string;
+  createdAt: string;
+};
+
+export type LaborLog = {
+  id: string;
+  workOrderId: string;
+  taskId: string;
+  userId: string;
+  userName?: string; // For display
+  hoursWorked: number;
+  notes?: string;
+  createdAt: string;
+};
+
+export type PartRequest = {
+  id: string;
+  workOrderId: string;
+  taskId?: string;
+  partId: string;
+  partName?: string; // For display
+  requestedQuantity: number;
+  status: string;
+  createdAt: string;
+};
+
+export type WorkOrderDetails = {
+  workOrder: WorkOrder;
+  tasks: WorkOrderTask[];
+  assignments: WorkOrderAssignment[];
+  partRequests: PartRequest[];
+  laborLogs: LaborLog[];
+  outsourcingDetails?: any;
+  activities: WorkOrderActivity[];
+};
+
+export type WorkOrderActivity = {
+  id: string;
+  workOrderId: string;
+  activityType: "comment" | "status_change" | "assignment" | "completion";
+  description: string;
+  createdBy: string;
+  createdByName?: string; // For display purposes
+  createdAt: string;
+  oldValue?: string;
+  newValue?: string;
+};
+
+export type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+};
+
+export type MaintenanceRequestStatus = 
+  | "PENDING_REVIEW"
+  | "APPROVED"
+  | "REJECTED";
+
+export type MaintenanceRequest = {
+  id: string;
+  assetId: string;
+  description: string;
+  status: MaintenanceRequestStatus;
+  requestedBy: string;
+  reviewedBy?: string;
+  createdAt: string;
+  updatedAt?: string;
+};

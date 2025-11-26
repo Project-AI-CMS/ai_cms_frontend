@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card } from './ui/card';
-import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Activity, 
   TrendingUp, 
@@ -12,7 +11,6 @@ import {
   Zap,
   Thermometer,
   Gauge,
-  Wind,
   Waves,
   AlertCircle,
   CheckCircle2,
@@ -159,15 +157,15 @@ function SensorChart({
   icon: Icon 
 }: { 
   title: string; 
-  data: any[]; 
+  data: Array<{ time: string; value: number }>; 
   dataKey: string; 
   color: string; 
   unit: string;
   threshold?: { value: number; label: string };
   icon: React.ComponentType<{ className?: string }>;
 }) {
-  const currentValue = data[data.length - 1]?.[dataKey] || 0;
-  const previousValue = data[data.length - 2]?.[dataKey] || 0;
+  const currentValue = data[data.length - 1]?.value || 0;
+  const previousValue = data[data.length - 2]?.value || 0;
   const trend = currentValue - previousValue;
   const isAboveThreshold = threshold && currentValue > threshold.value;
 

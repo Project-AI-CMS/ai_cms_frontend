@@ -6,7 +6,6 @@ import axios from "axios";
 import {
   Asset,
   AssetType,
-  Location,
   SparePart,
   AssetTypePart,
   UserRole,
@@ -15,7 +14,8 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
-
+// Configure axios defaults
+axios.defaults.timeout = 10000; // 10 second timeout
 
 // Simulate API delay
 // const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -58,9 +58,29 @@ export const assetApi = {
           totalPages: 1,
         },
       };
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || err.message || "Failed to fetch assets";
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to fetch assets";
+      
+      if (axiosError.code === 'ECONNABORTED') {
+        message = "Request timeout. Please try again later.";
+      } else if (axiosError.code === 'ERR_NETWORK' || axiosError.message?.includes('Network Error')) {
+        message = "Unable to connect to the server. Please check your connection and try again.";
+      } else if (axiosError.response?.status === 404) {
+        message = "The requested resource was not found.";
+      } else if (axiosError.response?.status === 500) {
+        message = "Server error. Please try again later.";
+      } else if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      // Log error details for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
       throw new Error(message);
     }
   },
@@ -71,9 +91,11 @@ export const assetApi = {
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Failed to fetch asset";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Failed to fetch asset";
       throw new Error(message);
     }
   },
@@ -82,9 +104,11 @@ export const assetApi = {
     try {
       const response = await axios.post(`${API_BASE_URL}/assets`, asset);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Failed to create asset";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Failed to create asset";
       throw new Error(message);
     }
   },
@@ -96,9 +120,11 @@ export const assetApi = {
         asset
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Failed to update asset";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Failed to update asset";
       throw new Error(message);
     }
   },
@@ -109,9 +135,11 @@ export const assetApi = {
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Failed to delete asset";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Failed to delete asset";
       throw new Error(message);
     }
   },
@@ -120,10 +148,10 @@ export const assetApi = {
     try {
       const response = await axios.get(`${API_BASE_URL}/assets/hierarchies`);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch asset hierarchy";
       throw new Error(message);
     }
@@ -136,10 +164,10 @@ export const assetApi = {
         { parentAssetId: parentId }
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to update asset hierarchy";
       throw new Error(message);
     }
@@ -152,10 +180,10 @@ export const assetTypeApi = {
     try {
       const response = await axios.get(`${API_BASE_URL}/asset-types`);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch asset types";
       throw new Error(message);
     }
@@ -167,9 +195,11 @@ export const assetTypeApi = {
         `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Asset type not found";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Asset type not found";
       throw new Error(message);
     }
   },
@@ -181,10 +211,10 @@ export const assetTypeApi = {
         assetType
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to create asset type";
       throw new Error(message);
     }
@@ -197,10 +227,10 @@ export const assetTypeApi = {
         assetType
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to update asset type";
       throw new Error(message);
     }
@@ -212,10 +242,10 @@ export const assetTypeApi = {
         `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to delete asset type";
       throw new Error(message);
     }
@@ -228,10 +258,10 @@ export const locationApi = {
     try {
       const response = await axios.get(`${API_BASE_URL}/locations`);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch locations";
       throw new Error(message);
     }
@@ -243,9 +273,11 @@ export const locationApi = {
         `${API_BASE_URL}/locations/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Location not found";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Location not found";
       throw new Error(message);
     }
   },
@@ -257,10 +289,10 @@ export const sparePartApi = {
     try {
       const response = await axios.get(`${API_BASE_URL}/spare-parts`);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch spare parts";
       throw new Error(message);
     }
@@ -272,9 +304,11 @@ export const sparePartApi = {
         `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message || err.message || "Spare part not found";
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
+        "Spare part not found";
       throw new Error(message);
     }
   },
@@ -286,10 +320,10 @@ export const sparePartApi = {
         sparePart
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to create spare part";
       throw new Error(message);
     }
@@ -302,10 +336,10 @@ export const sparePartApi = {
         sparePart
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to update spare part";
       throw new Error(message);
     }
@@ -317,10 +351,10 @@ export const sparePartApi = {
         `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to delete spare part";
       throw new Error(message);
     }
@@ -333,10 +367,10 @@ export const assetTypePartApi = {
     try {
       const response = await axios.get(`${API_BASE_URL}/boms`);
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch asset type parts";
       throw new Error(message);
     }
@@ -349,10 +383,10 @@ export const assetTypePartApi = {
         `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to fetch mappings for asset type";
       throw new Error(message);
     }
@@ -365,10 +399,10 @@ export const assetTypePartApi = {
         mapping
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to create mapping";
       throw new Error(message);
     }
@@ -381,10 +415,10 @@ export const assetTypePartApi = {
         mapping
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to update mapping";
       throw new Error(message);
     }
@@ -396,12 +430,549 @@ export const assetTypePartApi = {
         `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(assetTypeId)}/parts/${encodeURIComponent(partId)}`
       );
       return response.data;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        err?.response?.data?.message ||
-        err.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || 
+        (err as { message?: string })?.message || 
         "Failed to delete mapping";
       throw new Error(message);
     }
   },
+};
+
+// Work Order API
+export const workOrderApi = {
+  async getAll(params?: {
+    statuses?: string[];
+    workOrderTypes?: string[];
+    assetId?: string;
+    assignedToUserId?: string;
+  }) {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.statuses?.length) {
+        params.statuses.forEach(status => queryParams.append('statuses', status));
+      }
+      if (params?.workOrderTypes?.length) {
+        params.workOrderTypes.forEach(type => queryParams.append('workOrderTypes', type));
+      }
+      if (params?.assetId) {
+        queryParams.append('assetId', params.assetId);
+      }
+      if (params?.assignedToUserId) {
+        queryParams.append('assignedToUserId', params.assignedToUserId);
+      }
+
+      const url = `${API_BASE_URL}/work-orders${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await axios.get(url);
+      
+      // API returns array directly
+      return {
+        data: response.data || [],
+        pagination: {
+          page: 1,
+          limit: response.data?.length || 0,
+          total: response.data?.length || 0,
+          totalPages: 1,
+        },
+      };
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to fetch work orders";
+      
+      if (axiosError.code === 'ECONNABORTED') {
+        message = "Request timeout. Please try again later.";
+      } else if (axiosError.code === 'ERR_NETWORK' || axiosError.message?.includes('Network Error')) {
+        message = "Unable to connect to the server. Please check your connection and try again.";
+      } else if (axiosError.response?.status === 404) {
+        message = "The requested resource was not found.";
+      } else if (axiosError.response?.status === 500) {
+        message = "Server error. Please try again later.";
+      } else if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async getById(id: string) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}`);
+      return response.data; // Returns WorkOrderDetails
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to fetch work order";
+      
+      if (axiosError.response?.status === 404) {
+        message = "Work order not found.";
+      } else if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  // Work orders are created from maintenance requests or plans, not directly
+  async createFromPlan(data: { monthlyPlanId: string; assignments: Array<{ userId: string; assignmentRole: string }> }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/from-plan`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to create work order from plan";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async update(id: string, data: { description?: string; priority?: string }) {
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to update work order";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async cancel(id: string, reason: string) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}/cancel`, { reason });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to cancel work order";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async complete(id: string, data: { faultFound: boolean; notes?: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}/complete`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to complete work order";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async submitInspectionResults(id: string, data: { findings: string; recommendation: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}/inspection-results`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to submit inspection results";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async approveOutsourcing(id: string, data: { vendorId: string; estimatedCost: number }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}/approve-outsourcing`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to approve outsourcing";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async submitQualityReview(id: string, data: { isApproved: boolean; comment?: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(id)}/quality-review`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to submit quality review";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  // Task Management
+  async addTask(workOrderId: string, task: { taskName: string; description: string; sequenceOrder: number }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(workOrderId)}/tasks`, task);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to add task";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async updateTask(taskId: string, data: { description?: string }) {
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/work-orders/tasks/${encodeURIComponent(taskId)}`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to update task";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async updateTaskStatus(taskId: string, newStatus: string) {
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/work-orders/tasks/${encodeURIComponent(taskId)}/status`, { newStatus });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to update task status";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  // Assignment Management
+  async addAssignment(workOrderId: string, assignment: { userId: string; assignmentRole: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(workOrderId)}/assignments`, assignment);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to add assignment";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async removeAssignment(assignmentId: string) {
+    try {
+      await axios.delete(`${API_BASE_URL}/work-orders/assignments/${encodeURIComponent(assignmentId)}`);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to remove assignment";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  // Labor Logging
+  async addLaborLog(workOrderId: string, laborLog: { taskId: string; hoursWorked: number; notes?: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(workOrderId)}/labor-logs`, laborLog);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to add labor log";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  // Parts Management
+  async requestParts(workOrderId: string, partRequests: Array<{ taskId?: string; partId: string; requestedQuantity: number }>) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/work-orders/${encodeURIComponent(workOrderId)}/parts-requests`, partRequests);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to request parts";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async updatePartRequestStatus(partRequestId: string, newStatus: string) {
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/work-orders/parts-requests/${encodeURIComponent(partRequestId)}/status`, { newStatus });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to update part request status";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  }
+};
+
+// Maintenance Request API
+export const maintenanceRequestApi = {
+  async create(request: { assetId: string; description: string; requestedBy: string }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/maintenance-requests`, request);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to create maintenance request";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async getPending() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/maintenance-requests/pending`);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to fetch pending maintenance requests";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async approve(requestId: string) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/maintenance-requests/${encodeURIComponent(requestId)}/approve`);
+      return response.data; // Returns the newly created WorkOrder
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to approve maintenance request";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async reject(requestId: string, reason: string) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/maintenance-requests/${encodeURIComponent(requestId)}/reject`, { reason });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to reject maintenance request";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  }
+};
+
+// Users API
+export const userApi = {
+  async getAll(params?: { role?: UserRole }) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users`, { params });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { message?: string }; status?: number }; message?: string; code?: string };
+      
+      let message = "Failed to fetch users";
+      
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes('http')) {
+        message = axiosError.message;
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('API Error:', { url: API_BASE_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  }
 };
