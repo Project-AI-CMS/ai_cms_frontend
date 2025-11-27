@@ -250,7 +250,7 @@ function PlanDetails({ plan }: { plan: MaintenancePlan }) {
                 </div>
                 <p className="text-sm text-slate-600 mb-1">{approval.name}</p>
                 <p className="text-xs text-slate-500">{approval.date}</p>
-                <p className="text-sm text-slate-700 mt-2 italic">"{approval.comment}"</p>
+                <p className="text-sm text-slate-700 mt-2 italic">&ldquo;{approval.comment}&rdquo;</p>
               </div>
             </div>
           ))}

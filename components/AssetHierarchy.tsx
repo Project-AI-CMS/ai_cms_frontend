@@ -145,11 +145,12 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
         ...asset,
         components: [],
         level: 0,
-        currentHealthScore:
+        currentHealthScore: (
           (asset as unknown as Record<string, unknown>)[
             "current_health_score"
           ] ??
-          (asset as unknown as Record<string, unknown>)["currentHealthScore"],
+          (asset as unknown as Record<string, unknown>)["currentHealthScore"]
+        ) as number | undefined,
       };
       assetMap.set(asset.id, node);
     });

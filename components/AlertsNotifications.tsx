@@ -12,10 +12,8 @@ import {
   Info,
   CheckCircle2,
   Clock,
-  Filter,
   Search,
   TrendingUp,
-  Zap
 } from 'lucide-react';
 
 type AlertPriority = 'critical' | 'high' | 'medium' | 'low';

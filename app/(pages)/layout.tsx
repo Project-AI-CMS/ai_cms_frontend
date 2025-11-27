@@ -16,6 +16,7 @@ import {
   Bell,
   Link as LinkIcon,
   Wrench,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,12 @@ const menuItems: MenuItem[] = [
     href: "/work-orders",
   },
   {
+    id: "maintenance-requests",
+    label: "Maintenance Requests",
+    icon: FileText,
+    href: "/maintenance-requests",
+  },
+  {
     id: "spareparts",
     label: "Spare Parts",
     icon: Package,
@@ -90,6 +97,8 @@ export default function PagesLayout({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [currentTime, setCurrentTime] = useState<string>("");
+  const [currentDate, setCurrentDate] = useState<string>("");
 
   // Load user from localStorage after mount to avoid hydration mismatch
   React.useEffect(() => {
@@ -101,6 +110,20 @@ export default function PagesLayout({
     } catch {
       // Ignore errors
     }
+  }, []);
+
+  // Update time on client side only to avoid hydration mismatch
+  React.useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentDate(now.toLocaleDateString());
+      setCurrentTime(now.toLocaleTimeString());
+    };
+    
+    updateTime(); // Initial update
+    const interval = setInterval(updateTime, 1000); // Update every second
+    
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = () => {
@@ -222,10 +245,10 @@ export default function PagesLayout({
               </button>
               <div className="text-right">
                 <p className="text-sm text-slate-600">
-                  {new Date().toLocaleDateString()}
+                  {currentDate || "Loading..."}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {new Date().toLocaleTimeString()}
+                  {currentTime || "Loading..."}
                 </p>
               </div>
             </div>

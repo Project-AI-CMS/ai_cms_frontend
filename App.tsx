@@ -18,6 +18,7 @@ import { SystemSettings } from './components/SystemSettings';
 import { AssetMonitoring } from './components/AssetMonitoring';
 import { AlertsNotifications } from './components/AlertsNotifications';
 import { WorkOrderManagement } from './components/WorkOrderManagement';
+import { MaintenanceRequestManagement } from './components/MaintenanceRequestManagement';
 import { 
   LayoutDashboard, 
   Database, 
@@ -36,7 +37,8 @@ import {
   Activity,
   Bell,
   Link as LinkIcon,
-  Wrench
+  Wrench,
+  FileText
 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
@@ -61,6 +63,7 @@ const menuItems: MenuItem[] = [
   // { id: 'alerts', label: 'Alerts & Notifications', icon: Bell, component: AlertsNotifications },
   { id: 'equipment', label: 'Asset Management', icon: Database, component: AssetManagement },
   { id: 'work-orders', label: 'Work Orders', icon: Wrench, component: WorkOrderManagement },
+  { id: 'maintenance-requests', label: 'Maintenance Requests', icon: FileText, component: MaintenanceRequestManagement },
   // { id: 'plans', label: 'Maintenance Plans', icon: Calendar, component: MaintenancePlans },
   // { id: 'execution', label: 'Maintenance Execution', icon: ClipboardList, component: MaintenanceExecution },
   { id: 'spareparts', label: 'Spare Parts', icon: Package, component: SparePartsManagement },

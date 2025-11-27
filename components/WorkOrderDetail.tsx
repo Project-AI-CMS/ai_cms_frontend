@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -19,7 +19,7 @@ import {
   Zap,
   Send,
 } from "lucide-react";
-import { WorkOrder, WorkOrderActivity, UserInfo } from "@/types";
+import { UserInfo, WorkOrderDetails } from "@/types";
 import { workOrderApi } from "@/lib/api";
 
 type WorkOrderDetailProps = {
@@ -30,25 +30,23 @@ type WorkOrderDetailProps = {
 };
 
 const statusConfig = {
-  draft: { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: Clock },
-  open: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Clock },
-  in_progress: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
-  completed: { color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle2 },
-  cancelled: { color: 'text-red-600', bgColor: 'bg-red-100', icon: AlertCircle },
-  on_hold: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock }
+  NEW: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Clock },
+  IN_PROGRESS: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
+  PENDING_QC: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
+  COMPLETED: { color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle2 },
+  CANCELLED: { color: 'text-red-600', bgColor: 'bg-red-100', icon: AlertCircle },
+  REWORK_REQUIRED: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle }
 };
 
 const priorityConfig = {
-  low: { color: 'text-green-700', bgColor: 'bg-green-50' },
-  medium: { color: 'text-blue-700', bgColor: 'bg-blue-50' },
-  high: { color: 'text-orange-700', bgColor: 'bg-orange-50' },
-  critical: { color: 'text-red-700', bgColor: 'bg-red-50' },
-  emergency: { color: 'text-red-900', bgColor: 'bg-red-100' }
+  LOW: { color: 'text-green-700', bgColor: 'bg-green-50' },
+  MEDIUM: { color: 'text-blue-700', bgColor: 'bg-blue-50' },
+  HIGH: { color: 'text-orange-700', bgColor: 'bg-orange-50' },
+  CRITICAL: { color: 'text-red-700', bgColor: 'bg-red-50' }
 };
 
 export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrderDetailProps) {
-  const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
-  const [activities, setActivities] = useState<WorkOrderActivity[]>([]);
+  const [workOrderDetails, setWorkOrderDetails] = useState<WorkOrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -56,28 +54,23 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  useEffect(() => {
-    fetchWorkOrderData();
-  }, [workOrderId]);
-
-  const fetchWorkOrderData = async () => {
+  const fetchWorkOrderData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [workOrderData, activitiesData] = await Promise.all([
-        workOrderApi.getById(workOrderId),
-        workOrderApi.getActivities(workOrderId)
-      ]);
-      
-      setWorkOrder(workOrderData);
-      setActivities(Array.isArray(activitiesData) ? activitiesData : activitiesData.data || []);
+      const data = await workOrderApi.getById(workOrderId);
+      setWorkOrderDetails(data);
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message || "Failed to fetch work order details";
       setError(message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [workOrderId]);
+
+  useEffect(() => {
+    fetchWorkOrderData();
+  }, [fetchWorkOrderData]);
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -87,16 +80,15 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
       await workOrderApi.addActivity(workOrderId, {
         activityType: "comment",
         description: newComment.trim(),
-        createdBy: user.name, // TODO: Use actual user ID
+        createdBy: user.name,
       });
       
       setNewComment("");
       setSuccess("Comment added successfully");
       setTimeout(() => setSuccess(""), 3000);
       
-      // Refresh activities
-      const activitiesData = await workOrderApi.getActivities(workOrderId);
-      setActivities(Array.isArray(activitiesData) ? activitiesData : activitiesData.data || []);
+      // Refresh work order data
+      await fetchWorkOrderData();
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message || "Failed to add comment";
       setError(message);
@@ -136,7 +128,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     );
   }
 
-  if (error && !workOrder) {
+  if (error && !workOrderDetails) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -153,7 +145,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     );
   }
 
-  if (!workOrder) {
+  if (!workOrderDetails) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -169,10 +161,10 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     );
   }
 
+  const workOrder = workOrderDetails.workOrder;
+  const activities = workOrderDetails.activities || [];
   const StatusIcon = statusConfig[workOrder.status as keyof typeof statusConfig]?.icon || Clock;
-  const canEdit = user.role === "Administrator" || 
-                  user.role === "Maintenance Manager" ||
-                  (user.role === "Maintenance Worker" && workOrder.assignedTechnicianId === "current_user_id");
+  const canEdit = user.role === "Administrator" || user.role === "Maintenance Manager";
 
   return (
     <div className="space-y-6">
@@ -185,7 +177,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
           </Button>
           <div>
             <h2 className="text-2xl text-slate-900 mb-1">Work Order #{workOrder.id}</h2>
-            <p className="text-slate-600">{workOrder.title}</p>
+            <p className="text-slate-600">{workOrder.workOrderType} - {workOrder.assetName || workOrder.assetId}</p>
           </div>
         </div>
         {canEdit && onEdit && (
@@ -227,10 +219,12 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">Priority</p>
-                <Badge className={`${priorityConfig[workOrder.priority as keyof typeof priorityConfig]?.bgColor} ${priorityConfig[workOrder.priority as keyof typeof priorityConfig]?.color} border-0`}>
-                  {workOrder.priority === 'emergency' && <Zap className="w-3 h-3 mr-1" />}
-                  {formatPriority(workOrder.priority)}
-                </Badge>
+                {workOrder.priority && (
+                  <Badge className={`${priorityConfig[workOrder.priority as keyof typeof priorityConfig]?.bgColor} ${priorityConfig[workOrder.priority as keyof typeof priorityConfig]?.color} border-0`}>
+                    {workOrder.priority === 'CRITICAL' && <Zap className="w-3 h-3 mr-1" />}
+                    {formatPriority(workOrder.priority)}
+                  </Badge>
+                )}
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">Type</p>
@@ -242,11 +236,15 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
               </div>
               <div>
                 <p className="text-sm text-slate-600 mb-1">Assigned To</p>
-                <p className="text-sm text-slate-900">{workOrder.assignedTechnicianName || "Unassigned"}</p>
+                <p className="text-sm text-slate-900">
+                  {workOrderDetails.assignments.length > 0 
+                    ? workOrderDetails.assignments.map(a => a.userName || a.userId).join(', ')
+                    : "Unassigned"}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-slate-600 mb-1">Created By</p>
-                <p className="text-sm text-slate-900">{workOrder.createdBy}</p>
+                <p className="text-sm text-slate-600 mb-1">Created</p>
+                <p className="text-sm text-slate-900">{formatDate(workOrder.createdAt)}</p>
               </div>
             </div>
           </Card>
@@ -306,7 +304,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                         <p className="text-sm text-slate-700">{activity.description}</p>
                         {activity.oldValue && activity.newValue && (
                           <p className="text-xs text-slate-500 mt-1">
-                            Changed from "{activity.oldValue}" to "{activity.newValue}"
+                            Changed from &ldquo;{activity.oldValue}&rdquo; to &ldquo;{activity.newValue}&rdquo;
                           </p>
                         )}
                       </div>
@@ -331,24 +329,6 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                   <p className="text-sm text-slate-900">{formatDate(workOrder.createdAt)}</p>
                 </div>
               </div>
-              {workOrder.scheduledDate && (
-                <div className="flex items-center gap-3">
-                  <Clock className="w-4 h-4 text-slate-500" />
-                  <div>
-                    <p className="text-sm text-slate-600">Scheduled</p>
-                    <p className="text-sm text-slate-900">{formatDate(workOrder.scheduledDate)}</p>
-                  </div>
-                </div>
-              )}
-              {workOrder.completedDate && (
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  <div>
-                    <p className="text-sm text-slate-600">Completed</p>
-                    <p className="text-sm text-slate-900">{formatDate(workOrder.completedDate)}</p>
-                  </div>
-                </div>
-              )}
               <div className="flex items-center gap-3">
                 <Activity className="w-4 h-4 text-slate-500" />
                 <div>
@@ -359,32 +339,26 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
             </div>
           </Card>
 
-          {/* Time Tracking */}
-          {(workOrder.estimatedHours || workOrder.actualHours) && (
+          {/* Labor Logs */}
+          {workOrderDetails.laborLogs.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg text-slate-900 mb-4">Time Tracking</h3>
+              <h3 className="text-lg text-slate-900 mb-4">Labor Logs</h3>
               <div className="space-y-3">
-                {workOrder.estimatedHours && (
-                  <div>
-                    <p className="text-sm text-slate-600">Estimated Hours</p>
-                    <p className="text-lg text-slate-900">{workOrder.estimatedHours}h</p>
+                {workOrderDetails.laborLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-slate-50 rounded">
+                    <div>
+                      <p className="text-sm text-slate-900 font-medium">{log.userName || log.userId}</p>
+                      {log.notes && <p className="text-xs text-slate-600">{log.notes}</p>}
+                    </div>
+                    <p className="text-sm text-slate-900 font-medium">{log.hoursWorked}h</p>
                   </div>
-                )}
-                {workOrder.actualHours && (
-                  <div>
-                    <p className="text-sm text-slate-600">Actual Hours</p>
-                    <p className="text-lg text-slate-900">{workOrder.actualHours}h</p>
-                  </div>
-                )}
-                {workOrder.estimatedHours && workOrder.actualHours && (
-                  <div>
-                    <p className="text-sm text-slate-600">Variance</p>
-                    <p className={`text-lg ${workOrder.actualHours > workOrder.estimatedHours ? 'text-red-600' : 'text-green-600'}`}>
-                      {workOrder.actualHours > workOrder.estimatedHours ? '+' : ''}
-                      {(workOrder.actualHours - workOrder.estimatedHours).toFixed(1)}h
-                    </p>
-                  </div>
-                )}
+                ))}
+                <div className="pt-3 border-t">
+                  <p className="text-sm text-slate-600">Total Hours</p>
+                  <p className="text-2xl text-slate-900">
+                    {workOrderDetails.laborLogs.reduce((sum, log) => sum + log.hoursWorked, 0)}h
+                  </p>
+                </div>
               </div>
             </Card>
           )}

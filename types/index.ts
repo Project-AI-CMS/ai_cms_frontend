@@ -183,6 +183,7 @@ export type User = {
 };
 
 export type MaintenanceRequestStatus = 
+  | "PENDING"
   | "PENDING_REVIEW"
   | "APPROVED"
   | "REJECTED";

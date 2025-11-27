@@ -189,12 +189,12 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
               : `Manage and monitor all work orders (${total} total)`}
           </p>
         </div>
-        {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
+        {/* {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
           <Button onClick={() => onEditWorkOrder?.("new")}>
             <Plus className="w-4 h-4 mr-2" />
             Create Work Order
           </Button>
-        )}
+        )} */}
       </div>
 
       {/* Error Alert - Show prominently at top */}
@@ -337,7 +337,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
-                            {(user.role === "Administrator" || 
+                            {/* {(user.role === "Administrator" || 
                               user.role === "Maintenance Manager") && (
                               <Button
                                 variant="ghost"
@@ -346,7 +346,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                            )}
+                            )} */}
                             {(user.role === "Administrator" || user.role === "Maintenance Manager") && 
                              workOrder.status !== "COMPLETED" && workOrder.status !== "CANCELLED" && (
                               <Button

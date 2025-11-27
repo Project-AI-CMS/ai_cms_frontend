@@ -1198,6 +1198,70 @@ export const workOrderApi = {
       throw new Error(message);
     }
   },
+
+  // Activities/Comments
+  async getActivities(workOrderId: string) {
+    try {
+      const response = await axios.get(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+        code?: string;
+      };
+
+      let message = "Failed to fetch work order activities";
+
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async addActivity(workOrderId: string, activity: {
+    activityType: string;
+    description: string;
+    createdBy: string;
+    oldValue?: string;
+    newValue?: string;
+  }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`,
+        activity
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as {
+        response?: { data?: { message?: string }; status?: number };
+        message?: string;
+        code?: string;
+      };
+
+      let message = "Failed to add activity";
+
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
 };
 
 // Maintenance Request API
@@ -1209,7 +1273,7 @@ export const maintenanceRequestApi = {
   }) {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/maintenance-requests`,
+        `${API_WORK_ORDER_URL}/maintenance-requests`,
         request
       );
       return response.data;
@@ -1238,7 +1302,7 @@ export const maintenanceRequestApi = {
   async getPending() {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/maintenance-requests/pending`
+        `${API_WORK_ORDER_URL}/maintenance-requests/pending`
       );
       return response.data;
     } catch (err: unknown) {
@@ -1257,7 +1321,7 @@ export const maintenanceRequestApi = {
       }
 
       if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_BASE_URL, error: err });
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
       }
       throw new Error(message);
     }
@@ -1266,7 +1330,7 @@ export const maintenanceRequestApi = {
   async approve(requestId: string) {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/maintenance-requests/${encodeURIComponent(
+        `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
           requestId
         )}/approve`
       );
@@ -1287,7 +1351,7 @@ export const maintenanceRequestApi = {
       }
 
       if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_BASE_URL, error: err });
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
       }
       throw new Error(message);
     }
@@ -1296,7 +1360,7 @@ export const maintenanceRequestApi = {
   async reject(requestId: string, reason: string) {
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/maintenance-requests/${encodeURIComponent(
+        `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
           requestId
         )}/reject`,
         { reason }
@@ -1318,7 +1382,7 @@ export const maintenanceRequestApi = {
       }
 
       if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_BASE_URL, error: err });
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
       }
       throw new Error(message);
     }
@@ -1329,7 +1393,7 @@ export const maintenanceRequestApi = {
 export const userApi = {
   async getAll(params?: { role?: UserRole }) {
     try {
-      const response = await axios.get(`${API_BASE_URL}/users`, { params });
+      const response = await axios.get(`${API_WORK_ORDER_URL}/users`, { params });
       return response.data;
     } catch (err: unknown) {
       const axiosError = err as {
@@ -1347,7 +1411,7 @@ export const userApi = {
       }
 
       if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_BASE_URL, error: err });
+        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
       }
       throw new Error(message);
     }
