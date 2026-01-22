@@ -43,12 +43,6 @@ const menuItems: MenuItem[] = [
     href: "/dashboard",
   },
   {
-    id: "monitoring",
-    label: "Asset Monitoring",
-    icon: Activity,
-    href: "/asset-monitoring",
-  },
-  {
     id: "equipment",
     label: "Asset Management",
     icon: Database,
