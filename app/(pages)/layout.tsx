@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 
 type UserInfo = {
   name: string;
@@ -94,17 +95,19 @@ export default function PagesLayout({
   const [currentTime, setCurrentTime] = useState<string>("");
   const [currentDate, setCurrentDate] = useState<string>("");
 
-  // Load user from localStorage after mount to avoid hydration mismatch
+  // Load user from auth context
+  const { user, loading: authLoading, logout } = useAuth();
+
   React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ai_cms_user");
-      if (raw) {
-        setCurrentUser(JSON.parse(raw));
-      }
-    } catch {
-      // Ignore errors
+    setCurrentUser(user);
+  }, [user]);
+
+  // Redirect to login if not authenticated
+  React.useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/");
     }
-  }, []);
+  }, [user, authLoading, router]);
 
   // Update time on client side only to avoid hydration mismatch
   React.useEffect(() => {
@@ -113,16 +116,15 @@ export default function PagesLayout({
       setCurrentDate(now.toLocaleDateString());
       setCurrentTime(now.toLocaleTimeString());
     };
-    
+
     updateTime(); // Initial update
     const interval = setInterval(updateTime, 1000); // Update every second
-    
+
     return () => clearInterval(interval);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("ai_cms_user");
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 
@@ -175,7 +177,7 @@ export default function PagesLayout({
           >
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
               <span className="text-sm">
-                {currentUser
+                {currentUser && currentUser.name
                   ? currentUser.name
                       .split(" ")
                       .map((n) => n[0])
@@ -185,10 +187,10 @@ export default function PagesLayout({
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm text-white">
-                {currentUser ? currentUser.name : "Guest"}
+                {currentUser?.name || "Guest"}
               </p>
               <p className="text-xs text-slate-400">
-                {currentUser ? currentUser.role : "-"}
+                {currentUser?.role || "-"}
               </p>
             </div>
             <User className="w-4 h-4 text-slate-400" />
