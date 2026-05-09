@@ -5,6 +5,7 @@ import { AssetDetail } from "./AssetDetail";
 import { AssetForm } from "./AssetForm";
 import { AssetHierarchy } from "./AssetHierarchy";
 import { AssetTypeManagement } from "./AssetTypeManagement";
+import { LocationManagement } from "./LocationManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { UserInfo } from "@/types";
 
@@ -20,7 +21,6 @@ const defaultUser: UserInfo = {
   role: "Administrator",
 };
 export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
-
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedAssetId, setSelectedAssetId] = useState<string | undefined>();
   const [activeTab, setActiveTab] = useState("list");
@@ -52,8 +52,7 @@ export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
         assetId={selectedAssetId}
         onBack={handleBackToList}
         onEdit={
-          user.role === "Administrator" ||
-          user.role === "Maintenance Manager"
+          user.role === "Administrator" || user.role === "Maintenance Manager"
             ? handleEditAsset
             : undefined
         }
@@ -74,11 +73,14 @@ export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
   // Main tabbed view
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="list">Asset List</TabsTrigger>
         <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
         {user.role === "Administrator" && (
           <TabsTrigger value="types">Asset Types</TabsTrigger>
+        )}
+        {user.role === "Administrator" && (
+          <TabsTrigger value="locations">Locations</TabsTrigger>
         )}
       </TabsList>
 
@@ -97,6 +99,12 @@ export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
       {user.role === "Administrator" && (
         <TabsContent value="types" className="mt-6">
           <AssetTypeManagement user={user} />
+        </TabsContent>
+      )}
+
+      {user.role === "Administrator" && (
+        <TabsContent value="locations" className="mt-6">
+          <LocationManagement user={user} />
         </TabsContent>
       )}
     </Tabs>

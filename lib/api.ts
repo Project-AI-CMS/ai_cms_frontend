@@ -102,7 +102,7 @@ export const assetApi = {
   async getById(id: string) {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -141,7 +141,7 @@ export const assetApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}`,
-        asset
+        asset,
       );
       return response.data;
     } catch (err: unknown) {
@@ -161,7 +161,7 @@ export const assetApi = {
   async delete(id: string) {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -200,7 +200,7 @@ export const assetApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}/hierarchy`,
-        { parentAssetId: parentId }
+        { parentAssetId: parentId },
       );
       return response.data;
     } catch (err: unknown) {
@@ -241,7 +241,7 @@ export const assetTypeApi = {
   async getById(id: string) {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -262,7 +262,7 @@ export const assetTypeApi = {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/asset-types`,
-        assetType
+        assetType,
       );
       return response.data;
     } catch (err: unknown) {
@@ -283,7 +283,7 @@ export const assetTypeApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`,
-        assetType
+        assetType,
       );
       return response.data;
     } catch (err: unknown) {
@@ -303,7 +303,7 @@ export const assetTypeApi = {
   async delete(id: string) {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -344,7 +344,7 @@ export const locationApi = {
   async getById(id: string) {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/locations/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/locations/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -357,6 +357,76 @@ export const locationApi = {
         )?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Location not found";
+      throw new Error(message);
+    }
+  },
+
+  async create(location: {
+    name: string;
+    description?: string;
+    parentLocationId?: string | null;
+  }) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/locations`, location);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (
+          err as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to create location";
+      throw new Error(message);
+    }
+  },
+
+  async update(
+    id: string,
+    location: {
+      name?: string;
+      description?: string;
+      parentLocationId?: string | null;
+    },
+  ) {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/locations/${encodeURIComponent(id)}`,
+        location,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (
+          err as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to update location";
+      throw new Error(message);
+    }
+  },
+
+  async delete(id: string) {
+    try {
+      const response = await axios.delete(
+        `${API_BASE_URL}/locations/${encodeURIComponent(id)}`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (
+          err as {
+            response?: { data?: { message?: string } };
+            message?: string;
+          }
+        )?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to delete location";
       throw new Error(message);
     }
   },
@@ -385,7 +455,7 @@ export const sparePartApi = {
   async getById(id: string) {
     try {
       const response = await axios.get(
-        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -406,7 +476,7 @@ export const sparePartApi = {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/spare-parts`,
-        sparePart
+        sparePart,
       );
       return response.data;
     } catch (err: unknown) {
@@ -427,7 +497,7 @@ export const sparePartApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`,
-        sparePart
+        sparePart,
       );
       return response.data;
     } catch (err: unknown) {
@@ -447,7 +517,7 @@ export const sparePartApi = {
   async delete(id: string) {
     try {
       const response = await axios.delete(
-        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -489,7 +559,7 @@ export const assetTypePartApi = {
     try {
       // Common REST pattern: /asset-types/:id/parts
       const response = await axios.get(
-        `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`
+        `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -528,7 +598,7 @@ export const assetTypePartApi = {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/boms/${encodeURIComponent(id)}`,
-        mapping
+        mapping,
       );
       return response.data;
     } catch (err: unknown) {
@@ -549,8 +619,8 @@ export const assetTypePartApi = {
     try {
       const response = await axios.delete(
         `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(
-          assetTypeId
-        )}/parts/${encodeURIComponent(partId)}`
+          assetTypeId,
+        )}/parts/${encodeURIComponent(partId)}`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -580,12 +650,12 @@ export const workOrderApi = {
       const queryParams = new URLSearchParams();
       if (params?.statuses?.length) {
         params.statuses.forEach((status) =>
-          queryParams.append("statuses", status)
+          queryParams.append("statuses", status),
         );
       }
       if (params?.workOrderTypes?.length) {
         params.workOrderTypes.forEach((type) =>
-          queryParams.append("workOrderTypes", type)
+          queryParams.append("workOrderTypes", type),
         );
       }
       if (params?.assetId) {
@@ -647,7 +717,7 @@ export const workOrderApi = {
   async getById(id: string) {
     try {
       const response = await axios.get(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`,
       );
       return response.data; // Returns WorkOrderDetails
     } catch (err: unknown) {
@@ -682,7 +752,7 @@ export const workOrderApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/from-plan`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -722,7 +792,7 @@ export const workOrderApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -750,7 +820,7 @@ export const workOrderApi = {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -779,7 +849,7 @@ export const workOrderApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/cancel`,
-        { reason }
+        { reason },
       );
       return response.data;
     } catch (err: unknown) {
@@ -808,7 +878,7 @@ export const workOrderApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/complete`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -835,14 +905,14 @@ export const workOrderApi = {
 
   async submitInspectionResults(
     id: string,
-    data: { findings: string; recommendation: string }
+    data: { findings: string; recommendation: string },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          id
+          id,
         )}/inspection-results`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -869,14 +939,14 @@ export const workOrderApi = {
 
   async approveOutsourcing(
     id: string,
-    data: { vendorId: string; estimatedCost: number }
+    data: { vendorId: string; estimatedCost: number },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          id
+          id,
         )}/approve-outsourcing`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -903,14 +973,14 @@ export const workOrderApi = {
 
   async submitQualityReview(
     id: string,
-    data: { isApproved: boolean; comment?: string }
+    data: { isApproved: boolean; comment?: string },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          id
+          id,
         )}/quality-review`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -938,14 +1008,14 @@ export const workOrderApi = {
   // Task Management
   async addTask(
     workOrderId: string,
-    task: { taskName: string; description: string; sequenceOrder: number }
+    task: { taskName: string; description: string; sequenceOrder: number },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          workOrderId
+          workOrderId,
         )}/tasks`,
-        task
+        task,
       );
       return response.data;
     } catch (err: unknown) {
@@ -974,7 +1044,7 @@ export const workOrderApi = {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/tasks/${encodeURIComponent(taskId)}`,
-        data
+        data,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1003,9 +1073,9 @@ export const workOrderApi = {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/tasks/${encodeURIComponent(
-          taskId
+          taskId,
         )}/status`,
-        { newStatus }
+        { newStatus },
       );
       return response.data;
     } catch (err: unknown) {
@@ -1033,14 +1103,14 @@ export const workOrderApi = {
   // Assignment Management
   async addAssignment(
     workOrderId: string,
-    assignment: { userId: string; assignmentRole: string }
+    assignment: { userId: string; assignmentRole: string },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          workOrderId
+          workOrderId,
         )}/assignments`,
-        assignment
+        assignment,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1069,8 +1139,8 @@ export const workOrderApi = {
     try {
       await axios.delete(
         `${API_WORK_ORDER_URL}/work-orders/assignments/${encodeURIComponent(
-          assignmentId
-        )}`
+          assignmentId,
+        )}`,
       );
     } catch (err: unknown) {
       const axiosError = err as {
@@ -1097,14 +1167,14 @@ export const workOrderApi = {
   // Labor Logging
   async addLaborLog(
     workOrderId: string,
-    laborLog: { taskId: string; hoursWorked: number; notes?: string }
+    laborLog: { taskId: string; hoursWorked: number; notes?: string },
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          workOrderId
+          workOrderId,
         )}/labor-logs`,
-        laborLog
+        laborLog,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1136,14 +1206,14 @@ export const workOrderApi = {
       taskId?: string;
       partId: string;
       requestedQuantity: number;
-    }>
+    }>,
   ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
-          workOrderId
+          workOrderId,
         )}/parts-requests`,
-        partRequests
+        partRequests,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1172,9 +1242,9 @@ export const workOrderApi = {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/parts-requests/${encodeURIComponent(
-          partRequestId
+          partRequestId,
         )}/status`,
-        { newStatus }
+        { newStatus },
       );
       return response.data;
     } catch (err: unknown) {
@@ -1203,7 +1273,7 @@ export const workOrderApi = {
   async getActivities(workOrderId: string) {
     try {
       const response = await axios.get(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1228,17 +1298,20 @@ export const workOrderApi = {
     }
   },
 
-  async addActivity(workOrderId: string, activity: {
-    activityType: string;
-    description: string;
-    createdBy: string;
-    oldValue?: string;
-    newValue?: string;
-  }) {
+  async addActivity(
+    workOrderId: string,
+    activity: {
+      activityType: string;
+      description: string;
+      createdBy: string;
+      oldValue?: string;
+      newValue?: string;
+    },
+  ) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`,
-        activity
+        activity,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1274,7 +1347,7 @@ export const maintenanceRequestApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/maintenance-requests`,
-        request
+        request,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1302,7 +1375,7 @@ export const maintenanceRequestApi = {
   async getPending() {
     try {
       const response = await axios.get(
-        `${API_WORK_ORDER_URL}/maintenance-requests/pending`
+        `${API_WORK_ORDER_URL}/maintenance-requests/pending`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -1331,8 +1404,8 @@ export const maintenanceRequestApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
-          requestId
-        )}/approve`
+          requestId,
+        )}/approve`,
       );
       return response.data; // Returns the newly created WorkOrder
     } catch (err: unknown) {
@@ -1361,9 +1434,9 @@ export const maintenanceRequestApi = {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
-          requestId
+          requestId,
         )}/reject`,
-        { reason }
+        { reason },
       );
       return response.data;
     } catch (err: unknown) {
@@ -1393,7 +1466,9 @@ export const maintenanceRequestApi = {
 export const userApi = {
   async getAll(params?: { role?: UserRole }) {
     try {
-      const response = await axios.get(`${API_WORK_ORDER_URL}/users`, { params });
+      const response = await axios.get(`${API_WORK_ORDER_URL}/users`, {
+        params,
+      });
       return response.data;
     } catch (err: unknown) {
       const axiosError = err as {
