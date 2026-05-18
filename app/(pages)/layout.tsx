@@ -17,6 +17,7 @@ import {
   Link as LinkIcon,
   Wrench,
   FileText,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,13 @@ const menuItems: MenuItem[] = [
     label: "System Settings",
     icon: Settings,
     href: "/system-settings",
+    roles: ["Administrator"],
+  },
+  {
+    id: "admin",
+    label: "Admin Panel",
+    icon: Shield,
+    href: "/admin",
     roles: ["Administrator"],
   },
 ];
