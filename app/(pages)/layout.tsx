@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 type UserInfo = {
   name: string;
-  role: string;
+  roleNames: string[];
   email: string;
 };
 
@@ -73,21 +73,21 @@ const menuItems: MenuItem[] = [
     label: "Parts Mapping",
     icon: LinkIcon,
     href: "/parts-mapping",
-    roles: ["Administrator"],
+    roles: ["ADMIN"],
   },
   {
     id: "settings",
     label: "System Settings",
     icon: Settings,
     href: "/system-settings",
-    roles: ["Administrator"],
+    roles: ["ADMIN"],
   },
   {
     id: "admin",
     label: "Admin Panel",
     icon: Shield,
     href: "/admin",
-    roles: ["Administrator"],
+    roles: ["ADMIN"],
   },
 ];
 
@@ -107,7 +107,15 @@ export default function PagesLayout({
   const { user, loading: authLoading, logout } = useAuth();
 
   React.useEffect(() => {
-    setCurrentUser(user);
+    if (user) {
+      const name = `${user.firstName} ${user.lastName}`.trim();
+      const roleNames = user.roles?.map((r) => r.name) || [];
+      setCurrentUser({
+        name,
+        roleNames,
+        email: user.email,
+      });
+    }
   }, [user]);
 
   // Redirect to login if not authenticated
@@ -138,7 +146,9 @@ export default function PagesLayout({
 
   // filter items by role if user exists
   const filteredMenu = currentUser
-    ? menuItems.filter((i) => !i.roles || i.roles.includes(currentUser.role))
+    ? menuItems.filter(
+        (i) => !i.roles || i.roles.some((r) => currentUser.roleNames.includes(r))
+      )
     : menuItems;
 
   return (
@@ -198,7 +208,7 @@ export default function PagesLayout({
                 {currentUser?.name || "Guest"}
               </p>
               <p className="text-xs text-slate-400">
-                {currentUser?.role || "-"}
+                {currentUser?.roleNames.join(", ") || "-"}
               </p>
             </div>
             <User className="w-4 h-4 text-slate-400" />

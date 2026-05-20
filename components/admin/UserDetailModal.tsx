@@ -58,7 +58,10 @@ export function UserDetailModal({
         </Card>
         <Card className="p-4">
           <h3 className="text-sm font-semibold text-slate-600">Status</h3>
-          <Badge className="mt-1" variant={user.enabled ? "default" : "secondary"}>
+          <Badge
+            className="mt-1"
+            variant={user.enabled ? "default" : "secondary"}
+          >
             {user.enabled ? "Active" : "Inactive"}
           </Badge>
         </Card>

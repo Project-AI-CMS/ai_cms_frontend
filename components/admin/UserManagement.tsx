@@ -88,7 +88,7 @@ export function UserManagement() {
   const handleFormSuccess = (savedUser: User) => {
     if (editingUserId) {
       setUsers((prev) =>
-        prev.map((u) => (u.id === savedUser.id ? savedUser : u))
+        prev.map((u) => (u.id === savedUser.id ? savedUser : u)),
       );
       toast.success("User updated successfully");
     } else {

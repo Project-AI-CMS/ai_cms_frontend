@@ -1,14 +1,26 @@
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: Permission[];
+}
+
 export interface UserResponse {
   id: string;
+  username: string;
   email: string;
-  name: string;
-  role:
-    | "Administrator"
-    | "Maintenance Manager"
-    | "Maintenance Worker"
-    | "Safety Officer"
-    | "Viewer";
-  isActive?: boolean;
+  firstName: string;
+  lastName: string;
+  enabled: boolean;
+  roles: Role[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
