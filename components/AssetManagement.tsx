@@ -6,6 +6,7 @@ import { AssetForm } from "./AssetForm";
 import { AssetHierarchy } from "./AssetHierarchy";
 import { AssetTypeManagement } from "./AssetTypeManagement";
 import { LocationManagement } from "./LocationManagement";
+import { VendorManagement } from "./VendorManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { UserInfo } from "@/types";
 
@@ -73,14 +74,17 @@ export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
   // Main tabbed view
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="list">Asset List</TabsTrigger>
         <TabsTrigger value="hierarchy">Hierarchy</TabsTrigger>
-        {user.role === "Administrator" && (
+        {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
           <TabsTrigger value="types">Asset Types</TabsTrigger>
         )}
-        {user.role === "Administrator" && (
+        {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
           <TabsTrigger value="locations">Locations</TabsTrigger>
+        )}
+        {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
+          <TabsTrigger value="vendors">Vendors</TabsTrigger>
         )}
       </TabsList>
 
@@ -96,15 +100,21 @@ export function AssetManagement({ user = defaultUser }: AssetManagementProps) {
         <AssetHierarchy onViewAsset={handleViewAsset} />
       </TabsContent>
 
-      {user.role === "Administrator" && (
+      {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
         <TabsContent value="types" className="mt-6">
           <AssetTypeManagement user={user} />
         </TabsContent>
       )}
 
-      {user.role === "Administrator" && (
+      {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
         <TabsContent value="locations" className="mt-6">
           <LocationManagement user={user} />
+        </TabsContent>
+      )}
+
+      {(user.role === "Administrator" || user.role === "Maintenance Manager") && (
+        <TabsContent value="vendors" className="mt-6">
+          <VendorManagement user={user} />
         </TabsContent>
       )}
     </Tabs>

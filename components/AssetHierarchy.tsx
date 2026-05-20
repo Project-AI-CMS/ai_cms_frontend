@@ -67,6 +67,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
             id: String(get("id")),
             name: String(get("name") ?? ""),
             serialNumber: String(get("serial_number", "serialNumber") ?? ""),
+            modelNumber: String(get("model_number", "modelNumber") ?? ""),
             assetTypeId: String(get("asset_type_id", "assetTypeId") ?? ""),
             locationId: String(get("location_id", "locationId") ?? ""),
             parentAssetId: (node["parent_asset_id"] ??
@@ -84,6 +85,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
             id: mapped.id,
             name: mapped.name,
             serialNumber: mapped.serialNumber,
+            modelNumber: mapped.modelNumber,
             assetTypeId: mapped.assetTypeId,
             locationId: mapped.locationId,
             parentAssetId: mapped.parentAssetId ?? null,
@@ -109,6 +111,7 @@ export function AssetHierarchy({ onViewAsset }: AssetHierarchyProps) {
           id: String(a["id"] ?? ""),
           name: String(a["name"] ?? ""),
           serialNumber: String(a["serial_number"] ?? a["serialNumber"] ?? ""),
+          modelNumber: String(a["model_number"] ?? a["modelNumber"] ?? ""),
           assetTypeId: String(a["asset_type_id"] ?? a["assetTypeId"] ?? ""),
           locationId: String(a["location_id"] ?? a["locationId"] ?? ""),
           parentAssetId: (a["parent_asset_id"] ?? a["parentAssetId"]) as

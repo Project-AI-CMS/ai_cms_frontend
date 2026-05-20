@@ -8,6 +8,7 @@ import {
   AssetType,
   SparePart,
   AssetTypePart,
+  Vendor,
   UserRole,
   WorkOrderType,
   WorkOrderStatus,
@@ -22,6 +23,17 @@ const API_WORK_ORDER_URL =
 const API_BASE_URL = API_ASSET_URL;
 // Configure axios defaults
 axios.defaults.timeout = 10000; // 10 second timeout
+
+// Add interceptor synchronously so child components' useEffects have it
+axios.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("ai_cms_access_token") || localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 // Simulate API delay
 // const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -326,6 +338,7 @@ export const locationApi = {
   async getAll() {
     try {
       const response = await axios.get(`${API_BASE_URL}/locations`);
+      console.log(response)
       return response.data;
     } catch (err: unknown) {
       const message =
@@ -530,6 +543,93 @@ export const sparePartApi = {
         )?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Failed to delete spare part";
+      throw new Error(message);
+    }
+  },
+
+  async adjustStock(id: string, adjustment: { changeInQuantity: number; notes?: string }) {
+    try {
+      const response = await axios.patch(
+        `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}/stock`,
+        adjustment
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Failed to adjust stock";
+      throw new Error(message);
+    }
+  },
+};
+
+// Vendor API
+export const vendorApi = {
+  async getAll() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/vendors`);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Failed to fetch vendors";
+      throw new Error(message);
+    }
+  },
+
+  async getById(id: string) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/vendors/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Vendor not found";
+      throw new Error(message);
+    }
+  },
+
+  async create(vendor: Omit<Vendor, "id">) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/vendors`, vendor);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Failed to create vendor";
+      throw new Error(message);
+    }
+  },
+
+  async update(id: string, vendor: Partial<Vendor>) {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/vendors/${encodeURIComponent(id)}`,
+        vendor
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Failed to update vendor";
+      throw new Error(message);
+    }
+  },
+
+  async delete(id: string) {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/vendors/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as any)?.response?.data?.message ||
+        (err as any)?.message ||
+        "Failed to delete vendor";
       throw new Error(message);
     }
   },

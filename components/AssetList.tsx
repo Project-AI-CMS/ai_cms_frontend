@@ -4,6 +4,7 @@ import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Alert, AlertDescription } from "./ui/alert";
+import { Badge } from "./ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,6 +190,12 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                       Serial Number
                     </th>
                     <th className="text-left py-3 px-4 text-sm text-slate-600">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm text-slate-600">
+                      Health
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm text-slate-600">
                       Installation Date
                     </th>
                     <th className="text-right py-3 px-4 text-sm text-slate-600">
@@ -210,8 +217,32 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                       <td className="py-3 px-4 text-sm text-slate-900">
                         {asset.serialNumber}
                       </td>
+                      <td className="py-3 px-4 text-sm">
+                        {asset.currentStatus && (
+                          <Badge 
+                            variant={
+                              asset.currentStatus === "HEALTHY" ? "default" :
+                              asset.currentStatus === "WARNING" ? "secondary" : 
+                              asset.currentStatus === "CRITICAL" ? "destructive" : "outline"
+                            }
+                            className={asset.currentStatus === "HEALTHY" ? "bg-green-600 hover:bg-green-700" : ""}
+                          >
+                            {asset.currentStatus}
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {asset.currentHealthScore !== undefined ? (
+                          <span className={`font-medium ${
+                            asset.currentHealthScore >= 80 ? 'text-green-600' :
+                            asset.currentHealthScore >= 50 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {asset.currentHealthScore}%
+                          </span>
+                        ) : "-"}
+                      </td>
                       <td className="py-3 px-4 text-sm text-slate-900">
-                        {asset.installationDate}
+                        {asset.installationDate || "-"}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-end gap-2">

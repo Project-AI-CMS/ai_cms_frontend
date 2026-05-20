@@ -28,6 +28,7 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     serialNumber: "",
+    modelNumber: "",
     assetTypeId: "",
     locationId: "",
     parentAssetId: "",
@@ -68,11 +69,12 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
         const assetData = await assetApi.getById(assetId);
         setFormData({
           name: assetData.name,
-          serialNumber: assetData.serialNumber,
+          serialNumber: assetData.serialNumber || "",
+          modelNumber: assetData.modelNumber || "",
           assetTypeId: assetData.assetTypeId,
           locationId: assetData.locationId,
           parentAssetId: assetData.parentAssetId || "",
-          installationDate: assetData.installationDate,
+          installationDate: assetData.installationDate || "",
         });
       }
     } catch (error) {
@@ -87,8 +89,8 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) newErrors.name = "Asset name is required";
-    if (!formData.serialNumber.trim())
-      newErrors.serialNumber = "Serial number is required";
+    if (!formData.modelNumber.trim())
+      newErrors.modelNumber = "Model number is required";
     if (!formData.assetTypeId) newErrors.assetTypeId = "Asset type is required";
     if (!formData.locationId) newErrors.locationId = "Location is required";
     if (!formData.installationDate)
@@ -114,10 +116,11 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
       const submitData = {
         name: formData.name,
         serialNumber: formData.serialNumber,
+        modelNumber: formData.modelNumber,
         assetTypeId: formData.assetTypeId,
         locationId: formData.locationId,
         parentAssetId: formData.parentAssetId || null,
-        installationDate: formData.installationDate,
+        installationDate: formData.installationDate || undefined,
       };
 
       if (isEdit) {
@@ -201,7 +204,7 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
             {/* Basic Information */}
             <div>
               <h3 className="text-lg text-slate-900 mb-4">Basic Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="name">
                     Asset Name <span className="text-red-600">*</span>
@@ -219,8 +222,28 @@ export function AssetForm({ assetId, onBack, onSuccess }: AssetFormProps) {
                 </div>
 
                 <div>
+                  <Label htmlFor="modelNumber">
+                    Model Number <span className="text-red-600">*</span>
+                  </Label>
+                  <Input
+                    id="modelNumber"
+                    value={formData.modelNumber}
+                    onChange={(e) =>
+                      handleChange("modelNumber", e.target.value)
+                    }
+                    placeholder="Enter model number"
+                    className={errors.modelNumber ? "border-red-500" : ""}
+                  />
+                  {errors.modelNumber && (
+                    <p className="text-sm text-red-600 mt-1">
+                      {errors.modelNumber}
+                    </p>
+                  )}
+                </div>
+
+                <div>
                   <Label htmlFor="serialNumber">
-                    Serial Number <span className="text-red-600">*</span>
+                    Serial Number
                   </Label>
                   <Input
                     id="serialNumber"
