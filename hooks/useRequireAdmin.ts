@@ -8,14 +8,16 @@ export function useRequireAdmin() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
+  const isAdmin = user?.roles?.some((role) => role.name === "ADMIN");
+
   useEffect(() => {
-    if (!loading && (!user || user.role !== "Administrator")) {
+    if (!loading && (!user || !isAdmin)) {
       router.push("/dashboard");
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, isAdmin]);
 
   return {
-    isAuthorized: user?.role === "Administrator",
+    isAuthorized: isAdmin || false,
     loading,
     user,
   };

@@ -10,7 +10,8 @@ import {
   CreatePermissionRequest,
 } from "@/types/admin";
 
-const AUTH_API_URL = process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1";
+const AUTH_API_URL =
+  process.env.NEXT_PUBLIC_AUTH_API_URL || "http://localhost:8000/api/v1";
 
 const handleError = (err: unknown, defaultMessage: string) => {
   const axiosError = err as {
@@ -39,7 +40,7 @@ export const userApi = {
     try {
       const response = await axios.get<PagedUser>(
         `${AUTH_API_URL}/users?page=${page}&size=${size}`,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -60,11 +61,9 @@ export const userApi = {
 
   async create(data: CreateUserRequest): Promise<User> {
     try {
-      const response = await axios.post<User>(
-        `${AUTH_API_URL}/users`,
-        data,
-        { timeout: 10000 }
-      );
+      const response = await axios.post<User>(`${AUTH_API_URL}/users`, data, {
+        timeout: 10000,
+      });
       return response.data;
     } catch (err) {
       throw handleError(err, "Failed to create user");
@@ -76,7 +75,7 @@ export const userApi = {
       const response = await axios.put<User>(
         `${AUTH_API_URL}/users/${id}`,
         data,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -97,7 +96,7 @@ export const userApi = {
       const response = await axios.post<User>(
         `${AUTH_API_URL}/users/${userId}/roles/${roleId}`,
         {},
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -109,7 +108,7 @@ export const userApi = {
     try {
       const response = await axios.delete<User>(
         `${AUTH_API_URL}/users/${userId}/roles/${roleId}`,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -154,11 +153,9 @@ export const roleApi = {
 
   async create(data: CreateRoleRequest): Promise<Role> {
     try {
-      const response = await axios.post<Role>(
-        `${AUTH_API_URL}/roles`,
-        data,
-        { timeout: 10000 }
-      );
+      const response = await axios.post<Role>(`${AUTH_API_URL}/roles`, data, {
+        timeout: 10000,
+      });
       return response.data;
     } catch (err) {
       throw handleError(err, "Failed to create role");
@@ -170,7 +167,7 @@ export const roleApi = {
       const response = await axios.put<Role>(
         `${AUTH_API_URL}/roles/${id}`,
         data,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -191,7 +188,7 @@ export const roleApi = {
       const response = await axios.post<Role>(
         `${AUTH_API_URL}/roles/${roleId}/permissions/${permissionId}`,
         {},
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -203,7 +200,7 @@ export const roleApi = {
     try {
       const response = await axios.delete<Role>(
         `${AUTH_API_URL}/roles/${roleId}/permissions/${permissionId}`,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -217,7 +214,7 @@ export const permissionApi = {
     try {
       const response = await axios.get<Permission[]>(
         `${AUTH_API_URL}/roles/permissions`,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
@@ -230,7 +227,7 @@ export const permissionApi = {
       const response = await axios.post<Permission>(
         `${AUTH_API_URL}/roles/permissions`,
         data,
-        { timeout: 10000 }
+        { timeout: 10000 },
       );
       return response.data;
     } catch (err) {
