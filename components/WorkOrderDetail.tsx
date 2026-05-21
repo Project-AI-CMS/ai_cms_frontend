@@ -6,6 +6,14 @@ import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import { Alert, AlertDescription } from "./ui/alert";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "./ui/dialog";
+import {
   ArrowLeft,
   Edit,
   Clock,
@@ -18,6 +26,8 @@ import {
   Activity,
   Zap,
   Send,
+  Pause,
+  Play,
 } from "lucide-react";
 import { UserInfo, WorkOrderDetails } from "@/types";
 import { workOrderApi } from "@/lib/api";
@@ -30,9 +40,12 @@ type WorkOrderDetailProps = {
 };
 
 const statusConfig = {
+  DRAFT: { color: 'text-gray-600', bgColor: 'bg-gray-100', icon: Clock },
   NEW: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Clock },
+  ASSIGNED: { color: 'text-purple-600', bgColor: 'bg-purple-100', icon: User },
   IN_PROGRESS: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
-  PENDING_QC: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
+  ON_HOLD: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Pause },
+  PENDING_QC: { color: 'text-indigo-600', bgColor: 'bg-indigo-100', icon: Clock },
   COMPLETED: { color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle2 },
   CANCELLED: { color: 'text-red-600', bgColor: 'bg-red-100', icon: AlertCircle },
   REWORK_REQUIRED: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle }
@@ -53,6 +66,11 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const [isHoldDialogOpen, setIsHoldDialogOpen] = useState(false);
+  const [holdReason, setHoldReason] = useState("");
+  const [isHolding, setIsHolding] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
 
   const fetchWorkOrderData = useCallback(async () => {
     setLoading(true);
@@ -94,6 +112,39 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
       setError(message);
     } finally {
       setSubmittingComment(false);
+    }
+  };
+
+  const handleHold = async () => {
+    if (!holdReason.trim()) return;
+    setIsHolding(true);
+    try {
+      await workOrderApi.hold(workOrderId, { reason: holdReason });
+      setSuccess("Work order placed on hold");
+      setTimeout(() => setSuccess(""), 3000);
+      setIsHoldDialogOpen(false);
+      setHoldReason("");
+      fetchWorkOrderData();
+    } catch (err: unknown) {
+      const message = (err as any)?.message || "Failed to hold work order";
+      setError(message);
+    } finally {
+      setIsHolding(false);
+    }
+  };
+
+  const handleResume = async () => {
+    setIsResuming(true);
+    try {
+      await workOrderApi.resume(workOrderId);
+      setSuccess("Work order resumed");
+      setTimeout(() => setSuccess(""), 3000);
+      fetchWorkOrderData();
+    } catch (err: unknown) {
+      const message = (err as any)?.message || "Failed to resume work order";
+      setError(message);
+    } finally {
+      setIsResuming(false);
     }
   };
 
@@ -180,12 +231,26 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
             <p className="text-slate-600">{workOrder.workOrderType} - {workOrder.assetName || workOrder.assetId}</p>
           </div>
         </div>
-        {canEdit && onEdit && (
-          <Button onClick={() => onEdit(workOrder.id)}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {["DRAFT", "ASSIGNED", "IN_PROGRESS"].includes(workOrder.status) && canEdit && (
+            <Button variant="outline" onClick={() => setIsHoldDialogOpen(true)} disabled={isResuming}>
+              <Pause className="w-4 h-4 mr-2" />
+              Hold
+            </Button>
+          )}
+          {workOrder.status === "ON_HOLD" && canEdit && (
+            <Button variant="default" onClick={handleResume} disabled={isResuming}>
+              <Play className="w-4 h-4 mr-2" />
+              {isResuming ? "Resuming..." : "Resume"}
+            </Button>
+          )}
+          {canEdit && onEdit && (
+            <Button onClick={() => onEdit(workOrder.id)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Alerts */}
@@ -364,6 +429,31 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
           )}
         </div>
       </div>
+
+      <Dialog open={isHoldDialogOpen} onOpenChange={setIsHoldDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Place Work Order On Hold</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for placing this work order on hold. This will be logged.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              placeholder="Reason for hold..."
+              value={holdReason}
+              onChange={(e) => setHoldReason(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHoldDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleHold} disabled={!holdReason.trim() || isHolding}>
+              {isHolding ? "Placing on Hold..." : "Confirm Hold"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

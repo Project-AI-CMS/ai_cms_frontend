@@ -97,8 +97,11 @@ export type WorkOrderType =
   | "OUTSOURCING";
 
 export type WorkOrderStatus = 
+  | "DRAFT"
   | "NEW"
+  | "ASSIGNED"
   | "IN_PROGRESS" 
+  | "ON_HOLD"
   | "PENDING_QC"
   | "COMPLETED"
   | "CANCELLED"
@@ -213,4 +216,55 @@ export type MaintenanceRequest = {
   reviewedBy?: string;
   createdAt: string;
   updatedAt?: string;
+};
+
+export type PlanStatusDto = {
+  id: string;
+  planId: string;
+  planType: "ANNUAL" | "MONTHLY";
+  actionType: "VERIFY" | "APPROVE" | "CONFIRM" | "REJECT" | "OTHER";
+  comments?: string;
+  performedBy: string;
+  performedAt: string;
+};
+
+export type MPMAnnualPlanDto = {
+  id: string;
+  year: number;
+  description: string;
+  isActive: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MPMMonthlyPlanDto = {
+  id: string;
+  annualPlanId: string;
+  month: number;
+  year: number;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MPMPlanDetailsDto = {
+  id: string;
+  annualPlanId: string;
+  machineId: string;
+  description: string;
+  maintenanceType: string;
+  estimatedDuration: number;
+  plannerId: string;
+  monthBreakdown?: Record<string, boolean>;
+};
+
+export type WorkOrderMetricsDto = {
+  assetId: string;
+  mttr: number;
+  mtbf: number;
+  totalBreakdowns: number;
+  periodStart: string;
+  periodEnd: string;
 };
