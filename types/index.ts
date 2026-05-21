@@ -11,10 +11,16 @@ export type Asset = {
   id: string;
   name: string;
   serialNumber: string;
+  modelNumber: string;
+  parentAssetId?: string | null;
   assetTypeId: string;
   locationId: string;
-  parentAssetId: string | null;
-  installationDate: string;
+  installationDate?: string;
+  currentHealthScore?: number;
+  currentStatus?: "HEALTHY" | "WARNING" | "CRITICAL" | "MAINTENANCE_MODE";
+  lastStatusUpdate?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AssetType = {
@@ -25,11 +31,21 @@ export type AssetType = {
   updatedAt?: string;
 };
 
+export type Vendor = {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+};
+
 export type Location = {
   id: string;
   name: string;
   description?: string;
   parentLocationId?: string | null;
+  subLocations?: Location[];
   createdAt?: string;
   updatedAt?: string;
 };

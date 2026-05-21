@@ -129,7 +129,7 @@ export function AssetDetail({ assetId, onBack, onEdit }: AssetDetailProps) {
               <p className="text-sm text-slate-600">Installed</p>
               <p className="text-sm text-slate-900 mt-1">
                 {asset.installationDate
-                  ? new Date(asset.installationDate).toLocaleDateString()
+                  ? new Date(asset.installationDate as string).toLocaleDateString()
                   : "N/A"}
               </p>
             </div>
@@ -180,7 +180,7 @@ export function AssetDetail({ assetId, onBack, onEdit }: AssetDetailProps) {
                 <Label className="text-slate-600">Installation Date</Label>
                 <p className="text-slate-900 mt-1">
                   {asset.installationDate
-                    ? new Date(asset.installationDate).toLocaleDateString()
+                    ? new Date(asset.installationDate as string).toLocaleDateString()
                     : "N/A"}
                 </p>
               </div>
