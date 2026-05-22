@@ -18,6 +18,7 @@ import {
   Wrench,
   FileText,
   Shield,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,24 @@ const menuItems: MenuItem[] = [
     label: "Dashboard",
     icon: LayoutDashboard,
     href: "/dashboard",
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: TrendingUp,
+    href: "/analytics",
+  },
+  {
+    id: "analytics-predict",
+    label: "Make Prediction",
+    icon: Activity,
+    href: "/analytics/predict",
+  },
+  {
+    id: "analytics-batch",
+    label: "Batch Predictions",
+    icon: Package,
+    href: "/analytics/batch-predict",
   },
   {
     id: "equipment",
@@ -147,7 +166,8 @@ export default function PagesLayout({
   // filter items by role if user exists
   const filteredMenu = currentUser
     ? menuItems.filter(
-        (i) => !i.roles || i.roles.some((r) => currentUser.roleNames.includes(r))
+        (i) =>
+          !i.roles || i.roles.some((r) => currentUser.roleNames.includes(r)),
       )
     : menuItems;
 
