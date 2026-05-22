@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Login } from './components/Login';
 import { UserProfile } from './components/UserProfile';
+import { LandingPage } from './components/landing/LandingPage';
 import { Dashboard } from './components/Dashboard';
 import { EquipmentLedger } from './components/EquipmentLedger';
 import { AssetManagement } from './components/AssetManagement';
@@ -74,10 +75,12 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleLogin = (user: UserInfo) => {
     setCurrentUser(user);
     setActiveTab('dashboard');
+    setShowLoginModal(false);
   };
 
   const handleLogout = () => {
@@ -86,15 +89,34 @@ export default function App() {
     setShowProfile(false);
   };
 
+  // Show landing page if not logged in
+  if (!currentUser && !showLoginModal) {
+    return (
+      <LandingPage onLogin={() => setShowLoginModal(true)} />
+    );
+  }
+
+  // Show login modal
+  if (!currentUser && showLoginModal) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
+        <div className="w-full max-w-2xl">
+          <button 
+            onClick={() => setShowLoginModal(false)}
+            className="mb-4 text-white hover:text-blue-200 transition-colors"
+          >
+            ← Back to Home
+          </button>
+          <Login onLogin={handleLogin} />
+        </div>
+      </div>
+    );
+  }
+
   // Filter menu items based on user role
   const filteredMenuItems = currentUser 
     ? menuItems.filter(item => !item.roles || item.roles.includes(currentUser.role))
     : menuItems;
-
-  // Show login if not authenticated
-  if (!currentUser) {
-    return <Login onLogin={handleLogin} />;
-  }
 
   // Show user profile if requested
   if (showProfile) {
