@@ -103,7 +103,7 @@ export function MaintenanceRequestForm({ user, open, onOpenChange, onSuccess }: 
       await maintenanceRequestApi.create({
         assetId: formData.assetId,
         description: formData.description.trim(),
-        requestedBy: "acde070d-8c4c-4f0d-9d8a-162843c10333", // TODO: Use actual user ID when available
+        requestedBy: user.id || "",
       });
 
       setSuccess('Maintenance request submitted successfully');
@@ -157,24 +157,13 @@ export function MaintenanceRequestForm({ user, open, onOpenChange, onSuccess }: 
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Requested By (Read-only) */}
-          <div>
-            <Label htmlFor="requestedBy">Requested By</Label>
-            <Input
-              id="requestedBy"
-              value={user.name}
-              disabled
-              className="bg-gray-50"
-            />
-          </div>
 
-          {/* Asset Selection */}
           <div>
             <Label htmlFor="assetId">
               Asset <span className="text-red-600">*</span>
             </Label>
             <Select
-              value={formData.assetId}
+              value={formData.assetId || undefined}
               onValueChange={(value) => handleChange('assetId', value)}
               disabled={assetsLoading}
             >
@@ -220,7 +209,7 @@ export function MaintenanceRequestForm({ user, open, onOpenChange, onSuccess }: 
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || assetsLoading}>
+            <Button type="submit" disabled={loading || assetsLoading || !!success}>
               <Send className="w-4 h-4 mr-2" />
               {loading ? 'Submitting...' : 'Submit Request'}
             </Button>

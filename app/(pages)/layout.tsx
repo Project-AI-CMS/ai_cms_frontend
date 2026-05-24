@@ -18,6 +18,7 @@ import {
   Wrench,
   FileText,
   Shield,
+  Calendar,
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,6 +81,12 @@ const menuItems: MenuItem[] = [
     label: "Maintenance Requests",
     icon: FileText,
     href: "/maintenance-requests",
+  },
+  {
+    id: "maintenance-planning",
+    label: "Maintenance Planning",
+    icon: Calendar,
+    href: "/maintenance-planning",
   },
   {
     id: "spareparts",

@@ -5,6 +5,22 @@ import axios from "axios";
 import { authService } from "./auth";
 import { AuthResponse, LoginRequest, UserResponse } from "@/types/auth";
 
+// Normalize the raw backend user (roles[] array, firstName/lastName)
+// into the flat UserResponse shape the UI consumes (role string, name string)
+function normalizeUser(rawUser: any): UserResponse {
+  const firstRole = rawUser?.roles?.[0]?.name ?? rawUser?.role ?? "";
+  const fullName =
+    rawUser.name ??
+    [rawUser.firstName, rawUser.lastName].filter(Boolean).join(" ") ??
+    rawUser.username ??
+    rawUser.email;
+  return {
+    ...rawUser,
+    role: firstRole,
+    name: fullName,
+  };
+}
+
 export interface AuthContextType {
   user: UserResponse | null;
   loading: boolean;
@@ -97,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedUser = authService.getUser();
         if (savedUser && authService.getAccessToken()) {
-          setUser(savedUser);
+          setUser(normalizeUser(savedUser));
         }
       } catch (err) {
         console.error("Failed to restore session:", err);
@@ -145,9 +161,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           password,
         } as LoginRequest);
 
+        const normalized = normalizeUser(response.user);
         authService.setTokens(response.accessToken, response.refreshToken);
-        authService.setUser(response.user);
-        setUser(response.user);
+        authService.setUser(normalized);
+        setUser(normalized);
 
         // Schedule proactive token refresh
         scheduleTokenRefresh(response.expiresIn);

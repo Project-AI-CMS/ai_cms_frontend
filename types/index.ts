@@ -79,6 +79,7 @@ export type UserRole =
   | "Viewer";
 
 export type UserInfo = {
+  id?: string;
   name: string;
   role: UserRole;
   email: string;
@@ -96,9 +97,12 @@ export type WorkOrderType =
   | "PREVENTIVE"
   | "OUTSOURCING";
 
-export type WorkOrderStatus =
+export type WorkOrderStatus = 
+  | "DRAFT"
   | "NEW"
-  | "IN_PROGRESS"
+  | "ASSIGNED"
+  | "IN_PROGRESS" 
+  | "ON_HOLD"
   | "PENDING_QC"
   | "COMPLETED"
   | "CANCELLED"
@@ -211,11 +215,53 @@ export type MaintenanceRequest = {
   updatedAt?: string;
 };
 
-// Re-export analytics types
-export type {
-  PredictionRequest,
-  PredictionResponse,
-  PredictionResultResponse,
-  DashboardResponse,
-  HealthCheckResponse,
-} from "./analytics";
+export type PlanStatusDto = {
+  id: string;
+  planId: string;
+  planType: "ANNUAL" | "MONTHLY";
+  actionType: "VERIFY" | "APPROVE" | "CONFIRM" | "REJECT" | "OTHER";
+  comments?: string;
+  performedBy: string;
+  performedAt: string;
+};
+
+export type MPMAnnualPlanDto = {
+  id: string;
+  year: number;
+  description: string;
+  isActive: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MPMMonthlyPlanDto = {
+  id: string;
+  annualPlanId: string;
+  month: number;
+  year: number;
+  description: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MPMPlanDetailsDto = {
+  id: string;
+  annualPlanId: string;
+  machineId: string;
+  description: string;
+  maintenanceType: string;
+  estimatedDuration: number;
+  plannerId: string;
+  monthBreakdown?: Record<string, boolean>;
+};
+
+export type WorkOrderMetricsDto = {
+  assetId: string;
+  mttr: number;
+  mtbf: number;
+  totalBreakdowns: number;
+  periodStart: string;
+  periodEnd: string;
+};

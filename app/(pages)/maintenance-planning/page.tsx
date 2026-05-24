@@ -1,8 +1,8 @@
 "use client";
-import { WorkOrderManagement } from "@/components/WorkOrderManagement";
+import { MaintenancePlans } from "@/components/MaintenancePlans";
 import { useAuth } from "@/hooks/useAuth";
 
-export default function WorkOrdersPage() {
+export default function MaintenancePlanningPage() {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -17,10 +17,10 @@ export default function WorkOrdersPage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-600">Please log in to access work orders.</p>
+        <p className="text-slate-600">Please log in to access maintenance planning.</p>
       </div>
     );
   }
 
-  return <WorkOrderManagement user={user as any} />;
+  return <MaintenancePlans user={user as any} />;
 }

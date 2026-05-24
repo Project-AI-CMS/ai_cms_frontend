@@ -122,7 +122,7 @@ export function MaintenanceRequestDetailPage({ requestId, onBack, onSuccess }: M
           setActionLoading(false);
           return;
         }
-        await maintenanceRequestApi.reject(request.id, rejectReason.trim());
+        await maintenanceRequestApi.reject(request.id, { reason: rejectReason.trim() });
         setSuccess('Request rejected successfully.');
       }
 

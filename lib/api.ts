@@ -659,7 +659,7 @@ export const assetTypePartApi = {
     try {
       // Common REST pattern: /asset-types/:id/parts
       const response = await axios.get(
-        `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`,
+        `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(assetTypeId)}/compatible-parts`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -846,7 +846,8 @@ export const workOrderApi = {
 
   // Work orders are created from maintenance requests or plans, not directly
   async createFromPlan(data: {
-    monthlyPlanId: string;
+    monthlyPlanId?: string;
+    planDetailId?: string;
     assignments: Array<{ userId: string; assignmentRole: string }>;
   }) {
     try {
@@ -916,7 +917,7 @@ export const workOrderApi = {
     }
   },
 
-  async update(id: string, data: { description?: string; priority?: string }) {
+  async update(id: string, data: { description?: string; priority?: string; status?: string }) {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`,
@@ -940,6 +941,62 @@ export const workOrderApi = {
 
       if (process.env.NODE_ENV === "development") {
         console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async hold(id: string, data: { reason: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/hold`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to place work order on hold";
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
+      }
+      throw new Error(message);
+    }
+  },
+
+  async resume(id: string) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/resume`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to resume work order";
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
+      }
+      throw new Error(message);
+    }
+  },
+
+  async getMetrics(assetId: string, from: string, to: string) {
+    try {
+      const response = await axios.get(
+        `${API_WORK_ORDER_URL}/work-orders/reports/metrics`,
+        { params: { assetId, from, to } }
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to fetch work order metrics";
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
       }
       throw new Error(message);
     }
@@ -1435,6 +1492,58 @@ export const workOrderApi = {
       throw new Error(message);
     }
   },
+
+  async addTask(id: string, data: { taskName: string; description: string; sequenceOrder?: number }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/tasks`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to add task");
+    }
+  },
+
+  async requestParts(id: string, data: { partId: string; requestedQuantity: number }[]) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/parts-requests`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to request parts");
+    }
+  },
+
+  async logLabor(id: string, data: { taskId?: string; hoursWorked: number; notes?: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/labor-logs`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to log labor");
+    }
+  },
+
+  async addAssignment(id: string, data: { userId: string; assignmentRole: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/assignments`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to assign user");
+    }
+  },
 };
 
 // Maintenance Request API
@@ -1495,6 +1604,27 @@ export const maintenanceRequestApi = {
 
       if (process.env.NODE_ENV === "development") {
         console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
+      }
+      throw new Error(message);
+    }
+  },
+
+  async reject(requestId: string, data: { reason: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
+          requestId,
+        )}/reject`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to reject maintenance request";
+      if (axiosError.response?.data?.message) {
+        message = axiosError.response.data.message;
+      } else if (axiosError.message && !axiosError.message.includes("http")) {
+        message = axiosError.message;
       }
       throw new Error(message);
     }
@@ -1591,4 +1721,139 @@ export const userApi = {
       throw new Error(message);
     }
   },
+};
+
+// Maintenance Planning API
+export const maintenancePlanningApi = {
+  async getAllAnnualPlans() {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans`);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to fetch annual plans";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+  
+  async createAnnualPlan(data: any) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to create annual plan";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async activateAnnualPlan(id: string) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans/${encodeURIComponent(id)}/activate`);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to activate annual plan";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async deactivateAnnualPlan(id: string) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans/${encodeURIComponent(id)}/deactivate`);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to deactivate annual plan";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async getAllMonthlyPlans() {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans`);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to fetch monthly plans";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async createMonthlyPlan(data: any) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to create monthly plan";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async requestMonthlyPlanScheduleChange(data: any) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/request-schedule-change`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to request schedule change";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async searchPlanDetails(params: any) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-details/search`, { params });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to search plan details";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async createPlanDetails(data: any) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/plan-details`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to create plan details";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async searchPlanStatuses(params: any) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-status/search`, { params });
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to search plan statuses";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  },
+
+  async changePlanStatus(data: any) {
+    try {
+      const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/plan-status/change`, data);
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      let message = "Failed to change plan status";
+      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
+      throw new Error(message);
+    }
+  }
 };

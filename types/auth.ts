@@ -1,3 +1,25 @@
+export interface BackendRole {
+  id: string;
+  name: string;
+  description?: string;
+  permissions?: { id: string; name: string; description?: string }[];
+}
+
+// Shape returned directly by the backend
+export interface UserResponse {
+  id: string;
+  username?: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  enabled?: boolean;
+  // Backend returns roles as an array of role objects
+  roles?: BackendRole[];
+  // Normalized single role string derived from roles[0].name — used by all UI components
+  role: string;
+  // Derived display name
+  name: string;
+  isActive?: boolean;
 export interface Permission {
   id: string;
   name: string;
@@ -11,17 +33,6 @@ export interface Role {
   permissions: Permission[];
 }
 
-export interface UserResponse {
-  id: string;
-  username: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  enabled: boolean;
-  roles: Role[];
-  createdAt?: string;
-  updatedAt?: string;
-}
 
 export interface AuthResponse {
   accessToken: string;
