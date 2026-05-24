@@ -40,14 +40,19 @@ type WorkOrderListProps = {
   onEditWorkOrder?: (workOrderId: string) => void;
 };
 
-const statusConfig: Record<WorkOrderStatus, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
-  NEW: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: Clock },
-  IN_PROGRESS: { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
-  PENDING_QC: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
-  COMPLETED: { color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle2 },
-  CANCELLED: { color: 'text-red-600', bgColor: 'bg-red-100', icon: AlertCircle },
-  REWORK_REQUIRED: { color: 'text-red-600', bgColor: 'bg-red-50', icon: AlertTriangle }
+const statusConfig: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
+  DRAFT:           { color: 'text-gray-600',   bgColor: 'bg-gray-100',   icon: Clock },
+  NEW:             { color: 'text-blue-600',   bgColor: 'bg-blue-100',   icon: Clock },
+  ASSIGNED:        { color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Clock },
+  IN_PROGRESS:     { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
+  ON_HOLD:         { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
+  PENDING_QC:      { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
+  COMPLETED:       { color: 'text-green-600',  bgColor: 'bg-green-100',  icon: CheckCircle2 },
+  CANCELLED:       { color: 'text-red-600',    bgColor: 'bg-red-100',    icon: AlertCircle },
+  REWORK_REQUIRED: { color: 'text-red-600',    bgColor: 'bg-red-50',     icon: AlertTriangle },
 };
+
+const DEFAULT_STATUS = { color: 'text-slate-600', bgColor: 'bg-slate-100', icon: Clock };
 
 const priorityConfig: Record<WorkOrderPriority, { color: string; bgColor: string }> = {
   LOW: { color: 'text-green-700', bgColor: 'bg-green-50' },
@@ -277,7 +282,6 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 text-sm text-slate-600">ID</th>
                     <th className="text-left py-3 px-4 text-sm text-slate-600">Title</th>
                     <th className="text-left py-3 px-4 text-sm text-slate-600">Asset</th>
                     <th className="text-left py-3 px-4 text-sm text-slate-600">Type</th>
@@ -290,10 +294,10 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                 </thead>
                 <tbody>
                   {workOrders?.map((workOrder) => {
-                    const StatusIcon = statusConfig[workOrder.status].icon;
+                    const statusCfg = statusConfig[workOrder.status] ?? DEFAULT_STATUS;
+                    const StatusIcon = statusCfg.icon;
                     return (
                       <tr key={workOrder.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4 text-sm text-slate-900">{workOrder.id}</td>
                         <td className="py-3 px-4">
                           <div>
                             <p className="text-sm text-slate-900 font-medium">{workOrder.description.substring(0, 50)}...</p>
@@ -307,14 +311,14 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                           {workOrder.workOrderType}
                         </td>
                         <td className="py-3 px-4">
-                          <Badge className={`${statusConfig[workOrder.status].bgColor} ${statusConfig[workOrder.status].color} border-0`}>
+                          <Badge className={`${statusCfg.bgColor} ${statusCfg.color} border-0`}>
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {formatStatus(workOrder.status)}
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
                           {workOrder.priority ? (
-                            <Badge className={`${priorityConfig[workOrder.priority].bgColor} ${priorityConfig[workOrder.priority].color} border-0`}>
+                            <Badge className={`${(priorityConfig[workOrder.priority] ?? priorityConfig.LOW).bgColor} ${(priorityConfig[workOrder.priority] ?? priorityConfig.LOW).color} border-0`}>
                               {workOrder.priority === 'CRITICAL' && <Zap className="w-3 h-3 mr-1" />}
                               {formatPriority(workOrder.priority)}
                             </Badge>
@@ -347,7 +351,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                                 <Edit className="w-4 h-4" />
                               </Button>
                             )} */}
-                            {(user.role === "Administrator" || user.role === "Maintenance Manager") && 
+                            {(user.role === "ADMIN" || user.role === "MAINTENANCE_MANAGER") &&
                              workOrder.status !== "COMPLETED" && workOrder.status !== "CANCELLED" && (
                               <Button
                                 variant="ghost"

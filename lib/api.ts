@@ -659,7 +659,7 @@ export const assetTypePartApi = {
     try {
       // Common REST pattern: /asset-types/:id/parts
       const response = await axios.get(
-        `${API_BASE_URL}/asset-types/${encodeURIComponent(assetTypeId)}/parts`,
+        `${API_BASE_URL}/boms/asset-types/${encodeURIComponent(assetTypeId)}/compatible-parts`,
       );
       return response.data;
     } catch (err: unknown) {
@@ -846,7 +846,8 @@ export const workOrderApi = {
 
   // Work orders are created from maintenance requests or plans, not directly
   async createFromPlan(data: {
-    monthlyPlanId: string;
+    monthlyPlanId?: string;
+    planDetailId?: string;
     assignments: Array<{ userId: string; assignmentRole: string }>;
   }) {
     try {
@@ -916,7 +917,7 @@ export const workOrderApi = {
     }
   },
 
-  async update(id: string, data: { description?: string; priority?: string }) {
+  async update(id: string, data: { description?: string; priority?: string; status?: string }) {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`,
@@ -1489,6 +1490,58 @@ export const workOrderApi = {
         console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
       }
       throw new Error(message);
+    }
+  },
+
+  async addTask(id: string, data: { taskName: string; description: string; sequenceOrder?: number }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/tasks`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to add task");
+    }
+  },
+
+  async requestParts(id: string, data: { partId: string; requestedQuantity: number }[]) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/parts-requests`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to request parts");
+    }
+  },
+
+  async logLabor(id: string, data: { taskId?: string; hoursWorked: number; notes?: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/labor-logs`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to log labor");
+    }
+  },
+
+  async addAssignment(id: string, data: { userId: string; assignmentRole: string }) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/assignments`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to assign user");
     }
   },
 };

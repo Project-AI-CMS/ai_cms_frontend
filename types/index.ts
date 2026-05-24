@@ -79,6 +79,7 @@ export type UserRole =
   | "Viewer";
 
 export type UserInfo = {
+  id?: string;
   name: string;
   role: UserRole;
   email: string;

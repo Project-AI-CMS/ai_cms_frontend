@@ -112,13 +112,13 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
         <div>
           <h2 className="text-2xl text-slate-900 mb-1">Asset List</h2>
           <p className="text-slate-600">
-            {user.role === "Maintenance Worker"
+            {user.role === "TECHNICIAN" || user.role === "MAINTENANCE_WORKER"
               ? "Viewing your assigned assets"
               : `Manage and monitor all assets (${total} total)`}
           </p>
         </div>
-        {(user.role === "Administrator" ||
-          user.role === "Maintenance Manager") && (
+        {(user.role === "ADMIN" ||
+          user.role === "MAINTENANCE_MANAGER") && (
           <Button onClick={() => onEditAsset?.("new")}>
             <Plus className="w-4 h-4 mr-2" />
             Add Asset
@@ -253,8 +253,8 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          {(user.role === "Administrator" ||
-                            user.role === "Maintenance Manager") && (
+                          {(user.role === "ADMIN" ||
+                            user.role === "MAINTENANCE_MANAGER") && (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -263,8 +263,8 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                               <Edit className="w-4 h-4" />
                             </Button>
                           )}
-                          {(user.role === "Administrator" ||
-                            user.role === "Maintenance Manager") && (
+                          {(user.role === "ADMIN" ||
+                            user.role === "MAINTENANCE_MANAGER") && (
                             <Button
                               variant="ghost"
                               size="sm"

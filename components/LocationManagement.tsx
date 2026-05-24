@@ -64,7 +64,7 @@ export function LocationManagement({ user }: LocationManagementProps) {
   const [submitting, setSubmitting] = useState(false);
 
   // Check if user has admin access
-  const hasAccess = user.role === "Administrator";
+  const hasAccess = user.role === "Administrator" || user.role === "Maintenance Manager";
 
   useEffect(() => {
     fetchLocations();

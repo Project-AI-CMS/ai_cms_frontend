@@ -1,23 +1,20 @@
 "use client";
 import { WorkOrderManagement } from "@/components/WorkOrderManagement";
-import { UserInfo } from "@/types";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function WorkOrdersPage() {
-  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("ai_cms_user");
-      if (raw) {
-        setCurrentUser(JSON.parse(raw));
-      }
-    } catch {
-      // Ignore errors
-    }
-  }, []);
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <p className="text-slate-600 mt-4">Loading...</p>
+      </div>
+    );
+  }
 
-  if (!currentUser) {
+  if (!user) {
     return (
       <div className="text-center py-12">
         <p className="text-slate-600">Please log in to access work orders.</p>
@@ -25,5 +22,5 @@ export default function WorkOrdersPage() {
     );
   }
 
-  return <WorkOrderManagement user={currentUser} />;
+  return <WorkOrderManagement user={user as any} />;
 }
