@@ -2,23 +2,18 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Login } from "@/components/Login";
 import { useAuth } from "@/hooks/useAuth";
 
-export function useRequireAdmin() {
+export default function LoginPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const isAdmin = user?.roles?.some((role) => role.name === "ADMIN");
-
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    if (user) {
       router.push("/dashboard");
     }
-  }, [user, loading, router, isAdmin]);
+  }, [user, router]);
 
-  return {
-    isAuthorized: isAdmin || false,
-    loading,
-    user,
-  };
+  return <Login />;
 }

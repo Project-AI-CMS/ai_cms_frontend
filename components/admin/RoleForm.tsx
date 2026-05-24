@@ -29,7 +29,7 @@ export function RoleForm({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

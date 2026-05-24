@@ -91,9 +91,9 @@ export type PaginationParams = {
   total: number;
 };
 
-export type WorkOrderType = 
+export type WorkOrderType =
   | "INSPECTION"
-  | "REPAIR" 
+  | "REPAIR"
   | "PREVENTIVE"
   | "OUTSOURCING";
 
@@ -108,11 +108,7 @@ export type WorkOrderStatus =
   | "CANCELLED"
   | "REWORK_REQUIRED";
 
-export type WorkOrderPriority = 
-  | "LOW"
-  | "MEDIUM" 
-  | "HIGH"
-  | "CRITICAL";
+export type WorkOrderPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type WorkOrder = {
   id: string;
@@ -202,7 +198,7 @@ export type User = {
   isActive: boolean;
 };
 
-export type MaintenanceRequestStatus = 
+export type MaintenanceRequestStatus =
   | "PENDING"
   | "PENDING_REVIEW"
   | "APPROVED"

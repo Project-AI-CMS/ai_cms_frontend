@@ -20,9 +20,19 @@ export interface UserResponse {
   // Derived display name
   name: string;
   isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+export interface Permission {
+  id: string;
+  name: string;
+  description?: string;
 }
+
+export interface Role {
+  id: string;
+  name: string;
+  description?: string;
+  permissions: Permission[];
+}
+
 
 export interface AuthResponse {
   accessToken: string;

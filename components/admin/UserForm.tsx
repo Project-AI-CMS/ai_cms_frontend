@@ -9,7 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { userApi } from "@/lib/admin";
-import { User, Role, CreateUserRequest, UpdateUserRequest } from "@/types/admin";
+import {
+  User,
+  Role,
+  CreateUserRequest,
+  UpdateUserRequest,
+} from "@/types/admin";
 import { toast } from "sonner";
 
 interface UserFormProps {
@@ -19,12 +24,7 @@ interface UserFormProps {
   onCancel: () => void;
 }
 
-export function UserForm({
-  user,
-  roles,
-  onSuccess,
-  onCancel,
-}: UserFormProps) {
+export function UserForm({ user, roles, onSuccess, onCancel }: UserFormProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,7 +32,7 @@ export function UserForm({
   const [password, setPassword] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [selectedRoleIds, setSelectedRoleIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +62,12 @@ export function UserForm({
     e.preventDefault();
     setError(null);
 
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !username.trim()) {
+    if (
+      !firstName.trim() ||
+      !lastName.trim() ||
+      !email.trim() ||
+      !username.trim()
+    ) {
       setError("All fields are required");
       return;
     }
@@ -127,13 +132,20 @@ export function UserForm({
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" onClick={onCancel} disabled={loading} className="gap-2">
+      <Button
+        variant="ghost"
+        onClick={onCancel}
+        disabled={loading}
+        className="gap-2"
+      >
         <ArrowLeft className="w-4 h-4" />
         Back
       </Button>
 
       <div>
-        <h1 className="text-3xl font-bold">{user ? "Edit User" : "Create User"}</h1>
+        <h1 className="text-3xl font-bold">
+          {user ? "Edit User" : "Create User"}
+        </h1>
       </div>
 
       {error && (
@@ -149,30 +161,69 @@ export function UserForm({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>First Name</Label>
-              <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} disabled={loading} required className="mt-1" />
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1"
+              />
             </div>
             <div>
               <Label>Last Name</Label>
-              <Input value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={loading} required className="mt-1" />
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1"
+              />
             </div>
           </div>
           <div>
             <Label>Email</Label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading || !!user} required className="mt-1" />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading || !!user}
+              required
+              className="mt-1"
+            />
           </div>
           <div>
             <Label>Username</Label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading || !!user} required className="mt-1" />
+            <Input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={loading || !!user}
+              required
+              className="mt-1"
+            />
           </div>
           {!user && (
             <div>
               <Label>Password</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required className="mt-1" />
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+                className="mt-1"
+              />
             </div>
           )}
           <div className="flex items-center space-x-2">
-            <Checkbox id="enabled" checked={enabled} onCheckedChange={(c) => setEnabled(c as boolean)} disabled={loading} />
-            <Label htmlFor="enabled" className="font-normal cursor-pointer">Enabled</Label>
+            <Checkbox
+              id="enabled"
+              checked={enabled}
+              onCheckedChange={(c) => setEnabled(c as boolean)}
+              disabled={loading}
+            />
+            <Label htmlFor="enabled" className="font-normal cursor-pointer">
+              Enabled
+            </Label>
           </div>
         </Card>
 
@@ -187,14 +238,23 @@ export function UserForm({
                   onCheckedChange={() => handleRoleToggle(role.id)}
                   disabled={loading}
                 />
-                <Label htmlFor={role.id} className="font-normal cursor-pointer">{role.name}</Label>
+                <Label htmlFor={role.id} className="font-normal cursor-pointer">
+                  {role.name}
+                </Label>
               </div>
             ))}
           </div>
         </Card>
 
         <div className="flex gap-3 justify-end">
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>Cancel</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             {user ? "Update User" : "Create User"}

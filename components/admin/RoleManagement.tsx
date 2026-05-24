@@ -75,7 +75,7 @@ export function RoleManagement({ permissions }: RoleManagementProps) {
   const handleFormSuccess = (savedRole: Role) => {
     if (editingRoleId) {
       setRoles((prev) =>
-        prev.map((r) => (r.id === savedRole.id ? savedRole : r))
+        prev.map((r) => (r.id === savedRole.id ? savedRole : r)),
       );
       toast.success("Role updated successfully");
     } else {
@@ -112,7 +112,9 @@ export function RoleManagement({ permissions }: RoleManagementProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Roles</h1>
-          <p className="text-slate-500 mt-1">Manage system roles and permissions</p>
+          <p className="text-slate-500 mt-1">
+            Manage system roles and permissions
+          </p>
         </div>
         <Button onClick={handleCreate} className="gap-2">
           <Plus className="w-4 h-4" />
