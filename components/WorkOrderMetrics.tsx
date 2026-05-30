@@ -136,7 +136,7 @@ export function WorkOrderMetrics() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500">Mean Time To Repair (MTTR)</p>
-              <h3 className="text-3xl font-bold text-slate-900">{metrics.mttr ? metrics.mttr.toFixed(2) : '0'} hrs</h3>
+              <h3 className="text-3xl font-bold text-slate-900">{metrics.mttrHours ? metrics.mttrHours.toFixed(2) : '0'} hrs</h3>
             </div>
           </Card>
           
@@ -146,7 +146,7 @@ export function WorkOrderMetrics() {
             </div>
             <div>
               <p className="text-sm font-medium text-slate-500">Mean Time Between Failures (MTBF)</p>
-              <h3 className="text-3xl font-bold text-slate-900">{metrics.mtbf ? metrics.mtbf.toFixed(2) : '0'} hrs</h3>
+              <h3 className="text-3xl font-bold text-slate-900">{metrics.mtbfHours ? metrics.mtbfHours.toFixed(2) : '0'} hrs</h3>
             </div>
           </Card>
 
@@ -155,8 +155,8 @@ export function WorkOrderMetrics() {
               <Zap className="h-6 w-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Total Breakdowns</p>
-              <h3 className="text-3xl font-bold text-slate-900">{metrics.totalBreakdowns ?? '0'}</h3>
+              <p className="text-sm font-medium text-slate-500">Closed Work Orders</p>
+              <h3 className="text-3xl font-bold text-slate-900">{metrics.totalWorkOrdersClosed ?? '0'}</h3>
             </div>
           </Card>
         </div>

@@ -45,9 +45,21 @@ type MaintenanceRequestReviewProps = {
 };
 
 const statusConfig = {
+  PENDING: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
   PENDING_REVIEW: { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
   APPROVED: { color: 'text-green-600', bgColor: 'bg-green-100', icon: CheckCircle2 },
   REJECTED: { color: 'text-red-600', bgColor: 'bg-red-100', icon: XCircle }
+};
+
+const normalizeStatus = (status?: string | null) =>
+  String(status || "")
+    .trim()
+    .replace(/[-\s]+/g, "_")
+    .toUpperCase();
+
+const isPendingRequest = (request: MaintenanceRequest) => {
+  const status = normalizeStatus(request.status);
+  return status === "PENDING" || status === "PENDING_REVIEW";
 };
 
 export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceRequestReviewProps) {
@@ -177,7 +189,7 @@ export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceReq
                 <Clock className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-yellow-800">{requests.filter(r => r.status === 'PENDING_REVIEW').length}</p>
+                <p className="text-2xl font-bold text-yellow-800">{requests.filter(isPendingRequest).length}</p>
                 <p className="text-sm text-yellow-600">Pending Review</p>
               </div>
             </div>
@@ -188,7 +200,7 @@ export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceReq
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-800">{requests.filter(r => r.status === 'APPROVED').length}</p>
+                <p className="text-2xl font-bold text-green-800">{requests.filter(r => normalizeStatus(r.status) === 'APPROVED').length}</p>
                 <p className="text-sm text-green-600">Approved Today</p>
               </div>
             </div>
@@ -199,7 +211,7 @@ export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceReq
                 <XCircle className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-800">{requests.filter(r => r.status === 'REJECTED').length}</p>
+                <p className="text-2xl font-bold text-red-800">{requests.filter(r => normalizeStatus(r.status) === 'REJECTED').length}</p>
                 <p className="text-sm text-red-600">Rejected Today</p>
               </div>
             </div>
@@ -247,12 +259,13 @@ export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceReq
         ) : (
           <div className="space-y-4">
             {requests.map((request) => {
-              const StatusIcon = statusConfig[request.status as keyof typeof statusConfig]?.icon || Clock;
-              const statusStyle = statusConfig[request.status as keyof typeof statusConfig];
+              const normalizedStatus = normalizeStatus(request.status);
+              const StatusIcon = statusConfig[normalizedStatus as keyof typeof statusConfig]?.icon || Clock;
+              const statusStyle = statusConfig[normalizedStatus as keyof typeof statusConfig] ?? statusConfig.PENDING;
               
               return (
                 <Card key={request.id} className={`p-4 border-l-4 ${
-                  request.status === 'PENDING_REVIEW' 
+                  isPendingRequest(request)
                     ? 'border-l-yellow-400 bg-yellow-50/30' 
                     : 'border-l-gray-300'
                 }`}>
@@ -293,7 +306,7 @@ export function MaintenanceRequestReview({ user, onViewRequest }: MaintenanceReq
                     </div>
                   </div>
 
-                  {request.status === 'PENDING_REVIEW' ? (
+                  {isPendingRequest(request) ? (
                     <div className="bg-white border border-yellow-200 rounded-lg p-3 mt-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

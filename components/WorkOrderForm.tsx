@@ -97,12 +97,12 @@ export function WorkOrderForm({
       if (isEdit) {
         const workOrderData = await workOrderApi.getById(workOrderId);
         setFormData({
-          title: workOrderData.title,
-          description: workOrderData.description,
-          workOrderType: workOrderData.workOrderType,
-          status: workOrderData.status,
-          priority: workOrderData.priority,
-          assetId: workOrderData.assetId,
+          title: workOrderData.workOrder?.description || workOrderData.description || "",
+          description: workOrderData.workOrder?.description || workOrderData.description || "",
+          workOrderType: workOrderData.workOrder?.workOrderType || workOrderData.workOrderType,
+          status: workOrderData.workOrder?.status || workOrderData.status,
+          priority: workOrderData.workOrder?.priority || workOrderData.priority,
+          assetId: workOrderData.workOrder?.assetId || workOrderData.assetId,
           assignedTechnicianId: workOrderData.assignedTechnicianId || "",
           scheduledDate: workOrderData.scheduledDate
             ? workOrderData.scheduledDate.split("T")[0]
@@ -149,22 +149,14 @@ export function WorkOrderForm({
 
     setLoading(true);
     try {
-      const submitData = {
-        ...formData,
-        assignedTechnicianId: formData.assignedTechnicianId || undefined,
-        scheduledDate: formData.scheduledDate || undefined,
-        estimatedHours: formData.estimatedHours
-          ? Number(formData.estimatedHours)
-          : undefined,
-        createdBy: user.name, // TODO: Use actual user ID
-      };
-
       if (isEdit) {
-        await workOrderApi.update(workOrderId, submitData);
+        await workOrderApi.update(workOrderId, {
+          description: formData.description.trim(),
+          priority: formData.priority,
+        });
         setSuccess("Work order updated successfully");
       } else {
-        await workOrderApi.create(submitData);
-        setSuccess("Work order created successfully");
+        await workOrderApi.create();
       }
 
       setTimeout(() => {

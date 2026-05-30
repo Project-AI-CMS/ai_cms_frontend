@@ -46,6 +46,7 @@ type LocationManagementProps = {
 
 export function LocationManagement({ user }: LocationManagementProps) {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [locationHierarchies, setLocationHierarchies] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
@@ -73,8 +74,12 @@ export function LocationManagement({ user }: LocationManagementProps) {
   const fetchLocations = async () => {
     setLoading(true);
     try {
-      const data = await locationApi.getAll();
+      const [data, hierarchyData] = await Promise.all([
+        locationApi.getAll(),
+        locationApi.getHierarchies(),
+      ]);
       setLocations(data);
+      setLocationHierarchies(Array.isArray(hierarchyData) ? hierarchyData : []);
     } catch (error) {
       console.error("Failed to fetch locations:", error);
       setError("Failed to load locations");
@@ -178,6 +183,22 @@ export function LocationManagement({ user }: LocationManagementProps) {
     return locations.filter((loc) => loc.id !== editingLocation.id);
   };
 
+  const renderLocationTree = (items: Location[], level = 0) => {
+    return items.map((location) => (
+      <div key={location.id} className="space-y-2">
+        <div
+          className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm"
+          style={{ marginLeft: level * 16 }}
+        >
+          <MapPin className="w-4 h-4 text-blue-600" />
+          <span className="font-medium text-slate-900">{location.name}</span>
+          {location.description && <span className="text-slate-500">{location.description}</span>}
+        </div>
+        {location.subLocations?.length ? renderLocationTree(location.subLocations, level + 1) : null}
+      </div>
+    ));
+  };
+
   if (!hasAccess) {
     return (
       <div className="space-y-6">
@@ -243,9 +264,6 @@ export function LocationManagement({ user }: LocationManagementProps) {
               <thead>
                 <tr className="border-b">
                   <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">
-                    ID
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">
                     Name
                   </th>
                   <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">
@@ -262,9 +280,6 @@ export function LocationManagement({ user }: LocationManagementProps) {
               <tbody>
                 {locations.map((location) => (
                   <tr key={location.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm text-slate-900">
-                      {location.id}
-                    </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-blue-600" />
@@ -346,6 +361,15 @@ export function LocationManagement({ user }: LocationManagementProps) {
           </div>
         </Card>
       </div>
+
+      <Card className="p-6">
+        <h3 className="text-lg font-medium text-slate-900 mb-4">Location Hierarchy</h3>
+        {locationHierarchies.length === 0 ? (
+          <p className="text-sm text-slate-500">No hierarchy data available.</p>
+        ) : (
+          <div className="space-y-2">{renderLocationTree(locationHierarchies)}</div>
+        )}
+      </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

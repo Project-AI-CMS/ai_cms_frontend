@@ -191,7 +191,6 @@ export function AssetTypeManagement({ user }: AssetTypeManagementProps) {
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">ID</th>
                   <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">Name</th>
                   <th className="text-left py-3 px-4 text-sm text-slate-600 font-medium">Description</th>
                   <th className="text-right py-3 px-4 text-sm text-slate-600 font-medium">Actions</th>
@@ -200,7 +199,6 @@ export function AssetTypeManagement({ user }: AssetTypeManagementProps) {
               <tbody>
                 {assetTypes.map((type) => (
                   <tr key={type.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4 text-sm text-slate-900">{type.id}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-blue-600" />

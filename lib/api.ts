@@ -53,14 +53,18 @@ axios.interceptors.request.use((config) => {
 
 export const assetApi = {
   async getAll(params?: {
-    page?: number;
-    limit?: number;
+    assetTypeId?: string;
+    locationId?: string;
     status?: string;
-    search?: string;
-    userRole?: UserRole;
   }) {
     try {
-      const response = await axios.get(`${API_BASE_URL}/assets`, { params });
+      const response = await axios.get(`${API_BASE_URL}/assets`, {
+        params: {
+          assetTypeId: params?.assetTypeId,
+          locationId: params?.locationId,
+          status: params?.status,
+        },
+      });
       // Expecting backend to return { data: [...], pagination: { ... } }
       const resp = response.data;
       if (resp && (resp.data || Array.isArray(resp))) {
@@ -70,8 +74,8 @@ export const assetApi = {
       return {
         data: resp,
         pagination: {
-          page: params?.page || 1,
-          limit: params?.limit || (Array.isArray(resp) ? resp.length : 0),
+          page: 1,
+          limit: Array.isArray(resp) ? resp.length : 0,
           total: Array.isArray(resp) ? resp.length : 0,
           totalPages: 1,
         },
@@ -151,9 +155,10 @@ export const assetApi = {
 
   async update(id: string, asset: Partial<Asset>) {
     try {
+      const { name, modelNumber, locationId, installationDate } = asset;
       const response = await axios.put(
         `${API_BASE_URL}/assets/${encodeURIComponent(id)}`,
-        asset,
+        { name, modelNumber, locationId, installationDate },
       );
       return response.data;
     } catch (err: unknown) {
@@ -208,6 +213,21 @@ export const assetApi = {
     }
   },
 
+  async getHierarchyById(id: string) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/assets/${encodeURIComponent(id)}/hierarchy`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to fetch asset hierarchy";
+      throw new Error(message);
+    }
+  },
+
   async updateHierarchy(id: string, parentId: string | null) {
     try {
       const response = await axios.put(
@@ -225,6 +245,52 @@ export const assetApi = {
         )?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Failed to update asset hierarchy";
+      throw new Error(message);
+    }
+  },
+
+  async updateHealth(id: string, data: { healthScore: number; status: "HEALTHY" | "WARNING" | "CRITICAL" | "MAINTENANCE_MODE" }) {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/assets/internal/${encodeURIComponent(id)}/health`,
+        data,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to update asset health";
+      throw new Error(message);
+    }
+  },
+
+  async getInternalById(id: string) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/assets/internal/${encodeURIComponent(id)}`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to fetch internal asset";
+      throw new Error(message);
+    }
+  },
+
+  async getBySerialNumber(serialNumber: string) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/assets/by-serial/${encodeURIComponent(serialNumber)}`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Asset not found by serial number";
       throw new Error(message);
     }
   },
@@ -264,6 +330,21 @@ export const assetTypeApi = {
             message?: string;
           }
         )?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Asset type not found";
+      throw new Error(message);
+    }
+  },
+
+  async getByName(name: string) {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/asset-types/by-name`, {
+        params: { name },
+      });
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Asset type not found";
       throw new Error(message);
@@ -338,7 +419,6 @@ export const locationApi = {
   async getAll() {
     try {
       const response = await axios.get(`${API_BASE_URL}/locations`);
-      console.log(response)
       return response.data;
     } catch (err: unknown) {
       const message =
@@ -370,6 +450,34 @@ export const locationApi = {
         )?.response?.data?.message ||
         (err as { message?: string })?.message ||
         "Location not found";
+      throw new Error(message);
+    }
+  },
+
+  async getHierarchyById(id: string) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/locations/${encodeURIComponent(id)}/hierarchy`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to fetch location hierarchy";
+      throw new Error(message);
+    }
+  },
+
+  async getHierarchies() {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/locations/hierarchies`);
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to fetch location hierarchies";
       throw new Error(message);
     }
   },
@@ -508,9 +616,10 @@ export const sparePartApi = {
 
   async update(id: string, sparePart: Partial<SparePart>) {
     try {
+      const { name, description, reorderThreshold } = sparePart;
       const response = await axios.put(
         `${API_BASE_URL}/spare-parts/${encodeURIComponent(id)}`,
-        sparePart,
+        { name, description, reorderThreshold },
       );
       return response.data;
     } catch (err: unknown) {
@@ -559,6 +668,37 @@ export const sparePartApi = {
         (err as any)?.response?.data?.message ||
         (err as any)?.message ||
         "Failed to adjust stock";
+      throw new Error(message);
+    }
+  },
+
+  async getInternalById(id: string) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/spare-parts/internal/${encodeURIComponent(id)}`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to fetch internal spare part";
+      throw new Error(message);
+    }
+  },
+
+  async adjustStockInternal(id: string, adjustment: { changeInQuantity: number; notes?: string }) {
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/spare-parts/internal/${encodeURIComponent(id)}/stock`,
+        adjustment,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
+        (err as { message?: string })?.message ||
+        "Failed to adjust internal stock";
       throw new Error(message);
     }
   },
@@ -694,23 +834,17 @@ export const assetTypePartApi = {
     }
   },
 
-  async update(id: string, mapping: Partial<AssetTypePart>) {
+  async getAssetTypesByPart(partId: string) {
     try {
-      const response = await axios.put(
-        `${API_BASE_URL}/boms/${encodeURIComponent(id)}`,
-        mapping,
+      const response = await axios.get(
+        `${API_BASE_URL}/boms/parts/${encodeURIComponent(partId)}/asset-types`,
       );
       return response.data;
     } catch (err: unknown) {
       const message =
-        (
-          err as {
-            response?: { data?: { message?: string } };
-            message?: string;
-          }
-        )?.response?.data?.message ||
+        (err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ||
         (err as { message?: string })?.message ||
-        "Failed to update mapping";
+        "Failed to fetch asset types using part";
       throw new Error(message);
     }
   },
@@ -737,6 +871,22 @@ export const assetTypePartApi = {
     }
   },
 };
+
+type ApiErrorLike = {
+  response?: { data?: { message?: string }; status?: number };
+  message?: string;
+  code?: string;
+};
+
+const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const axiosError = err as ApiErrorLike;
+  return axiosError.response?.data?.message || axiosError.message || fallback;
+};
+
+type CreateAssignmentPayload = { userId: string; assignmentRole?: string };
+type CreateTaskPayload = { taskName: string; description?: string; sequenceOrder?: number };
+type CreatePartRequestPayload = { taskId?: string; partId: string; requestedQuantity: number };
+type CreateLaborLogPayload = { taskId: string; hoursWorked: number; logDate?: string; notes?: string };
 
 // Work Order API
 export const workOrderApi = {
@@ -846,9 +996,8 @@ export const workOrderApi = {
 
   // Work orders are created from maintenance requests or plans, not directly
   async createFromPlan(data: {
-    monthlyPlanId?: string;
-    planDetailId?: string;
-    assignments: Array<{ userId: string; assignmentRole: string }>;
+    monthlyPlanId: string;
+    assignments: CreateAssignmentPayload[];
   }) {
     try {
       const response = await axios.post(
@@ -878,46 +1027,13 @@ export const workOrderApi = {
     }
   },
 
-  async create(data: {
-    assignedTechnicianId?: string;
-    scheduledDate?: string;
-    estimatedHours?: number;
-    createdBy: string;
-    title: string;
-    description: string;
-    workOrderType: WorkOrderType;
-    status: WorkOrderStatus;
-    priority: WorkOrderPriority;
-    assetId: string;
-  }) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders`,
-        data,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as {
-        response?: { data?: { message?: string }; status?: number };
-        message?: string;
-        code?: string;
-      };
-      let message = "Failed to create work order";
-
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
-      }
-      throw new Error(message);
-    }
+  async create() {
+    throw new Error(
+      "Direct work order creation is not supported by the Work Order Service. Create work orders by approving maintenance requests or generating them from monthly plans.",
+    );
   },
 
-  async update(id: string, data: { description?: string; priority?: string; status?: string }) {
+  async update(id: string, data: { description?: string; priority?: string }) {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}`,
@@ -954,14 +1070,7 @@ export const workOrderApi = {
       );
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to place work order on hold";
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to place work order on hold"));
     }
   },
 
@@ -972,14 +1081,7 @@ export const workOrderApi = {
       );
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to resume work order";
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to resume work order"));
     }
   },
 
@@ -991,14 +1093,7 @@ export const workOrderApi = {
       );
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to fetch work order metrics";
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to fetch work order metrics"));
     }
   },
 
@@ -1130,7 +1225,7 @@ export const workOrderApi = {
 
   async submitQualityReview(
     id: string,
-    data: { isApproved: boolean; comment?: string },
+    data: { isApproved: boolean; comment: string },
   ) {
     try {
       const response = await axios.post(
@@ -1165,7 +1260,7 @@ export const workOrderApi = {
   // Task Management
   async addTask(
     workOrderId: string,
-    task: { taskName: string; description: string; sequenceOrder: number },
+    task: CreateTaskPayload,
   ) {
     try {
       const response = await axios.post(
@@ -1197,7 +1292,7 @@ export const workOrderApi = {
     }
   },
 
-  async updateTask(taskId: string, data: { description?: string }) {
+  async updateTask(taskId: string, data: { taskName?: string; description?: string; sequenceOrder?: number }) {
     try {
       const response = await axios.patch(
         `${API_WORK_ORDER_URL}/work-orders/tasks/${encodeURIComponent(taskId)}`,
@@ -1260,7 +1355,7 @@ export const workOrderApi = {
   // Assignment Management
   async addAssignment(
     workOrderId: string,
-    assignment: { userId: string; assignmentRole: string },
+    assignment: CreateAssignmentPayload,
   ) {
     try {
       const response = await axios.post(
@@ -1322,9 +1417,9 @@ export const workOrderApi = {
   },
 
   // Labor Logging
-  async addLaborLog(
+  async logLabor(
     workOrderId: string,
-    laborLog: { taskId: string; hoursWorked: number; notes?: string },
+    laborLog: CreateLaborLogPayload,
   ) {
     try {
       const response = await axios.post(
@@ -1357,14 +1452,7 @@ export const workOrderApi = {
   },
 
   // Parts Management
-  async requestParts(
-    workOrderId: string,
-    partRequests: Array<{
-      taskId?: string;
-      partId: string;
-      requestedQuantity: number;
-    }>,
-  ) {
+  async requestParts(workOrderId: string, partRequests: CreatePartRequestPayload[]) {
     try {
       const response = await axios.post(
         `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
@@ -1426,124 +1514,6 @@ export const workOrderApi = {
     }
   },
 
-  // Activities/Comments
-  async getActivities(workOrderId: string) {
-    try {
-      const response = await axios.get(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as {
-        response?: { data?: { message?: string }; status?: number };
-        message?: string;
-        code?: string;
-      };
-
-      let message = "Failed to fetch work order activities";
-
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
-      }
-      throw new Error(message);
-    }
-  },
-
-  async addActivity(
-    workOrderId: string,
-    activity: {
-      activityType: string;
-      description: string;
-      createdBy: string;
-      oldValue?: string;
-      newValue?: string;
-    },
-  ) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(workOrderId)}/activities`,
-        activity,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as {
-        response?: { data?: { message?: string }; status?: number };
-        message?: string;
-        code?: string;
-      };
-
-      let message = "Failed to add activity";
-
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        console.error("API Error:", { url: API_WORK_ORDER_URL, error: err });
-      }
-      throw new Error(message);
-    }
-  },
-
-  async addTask(id: string, data: { taskName: string; description: string; sequenceOrder?: number }) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/tasks`,
-        data,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as any;
-      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to add task");
-    }
-  },
-
-  async requestParts(id: string, data: { partId: string; requestedQuantity: number }[]) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/parts-requests`,
-        data,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as any;
-      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to request parts");
-    }
-  },
-
-  async logLabor(id: string, data: { taskId?: string; hoursWorked: number; notes?: string }) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/labor-logs`,
-        data,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as any;
-      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to log labor");
-    }
-  },
-
-  async addAssignment(id: string, data: { userId: string; assignmentRole: string }) {
-    try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(id)}/assignments`,
-        data,
-      );
-      return response.data;
-    } catch (err: unknown) {
-      const axiosError = err as any;
-      throw new Error(axiosError.response?.data?.message || axiosError.message || "Failed to assign user");
-    }
-  },
 };
 
 // Maintenance Request API
@@ -1609,24 +1579,14 @@ export const maintenanceRequestApi = {
     }
   },
 
-  async reject(requestId: string, data: { reason: string }) {
+  async getMyRequests() {
     try {
-      const response = await axios.post(
-        `${API_WORK_ORDER_URL}/maintenance-requests/${encodeURIComponent(
-          requestId,
-        )}/reject`,
-        data,
+      const response = await axios.get(
+        `${API_WORK_ORDER_URL}/maintenance-requests/my`,
       );
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to reject maintenance request";
-      if (axiosError.response?.data?.message) {
-        message = axiosError.response.data.message;
-      } else if (axiosError.message && !axiosError.message.includes("http")) {
-        message = axiosError.message;
-      }
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to fetch your maintenance requests"));
     }
   },
 
@@ -1730,22 +1690,25 @@ export const maintenancePlanningApi = {
       const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans`);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to fetch annual plans";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to fetch annual plans"));
     }
   },
-  
-  async createAnnualPlan(data: any) {
+
+  async getAnnualPlanById(id: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch annual plan"));
+    }
+  },
+
+  async createAnnualPlan(data: { fiscalYear: number; status?: string; active?: boolean }) {
     try {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans`, data);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to create annual plan";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to create annual plan"));
     }
   },
 
@@ -1754,10 +1717,7 @@ export const maintenancePlanningApi = {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans/${encodeURIComponent(id)}/activate`);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to activate annual plan";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to activate annual plan"));
     }
   },
 
@@ -1766,10 +1726,7 @@ export const maintenancePlanningApi = {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/annual-plans/${encodeURIComponent(id)}/deactivate`);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to deactivate annual plan";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to deactivate annual plan"));
     }
   },
 
@@ -1778,82 +1735,180 @@ export const maintenancePlanningApi = {
       const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans`);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to fetch monthly plans";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to fetch monthly plans"));
     }
   },
 
-  async createMonthlyPlan(data: any) {
+  async getMonthlyPlanById(id: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch monthly plan"));
+    }
+  },
+
+  async getMonthlyPlansByForman(formanId: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/forman/${encodeURIComponent(formanId)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch foreman monthly plans"));
+    }
+  },
+
+  async getMonthlyPlansByConfirmedBy(confirmedById: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/confirmed-by/${encodeURIComponent(confirmedById)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch confirmed monthly plans"));
+    }
+  },
+
+  async getMonthlyPlansByAnnualPlan(annualPlanId: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/annual-plan/${encodeURIComponent(annualPlanId)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch annual plan monthly plans"));
+    }
+  },
+
+  async createMonthlyPlan(data: {
+    planDetailsId: string;
+    formanId: string;
+    machineCondition?: string;
+    remark?: string;
+    nextMntPlanFrom: string;
+    nextMntPlanTo: string;
+  }) {
     try {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans`, data);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to create monthly plan";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to create monthly plan"));
     }
   },
 
-  async requestMonthlyPlanScheduleChange(data: any) {
+  async requestMonthlyPlanScheduleChange(data: {
+    monthlyPlanId: string;
+    newNextMntPlanFrom: string;
+    newNextMntPlanTo: string;
+    reasonJustification: string;
+    changeRequestedBy?: string;
+  }) {
     try {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/monthly-plans/request-schedule-change`, data);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to request schedule change";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to request schedule change"));
     }
   },
 
-  async searchPlanDetails(params: any) {
+  async searchPlanDetails(params: {
+    id?: string;
+    annualPlanId?: string;
+    plannerId?: string;
+    machineId?: string;
+    descriptionContains?: string;
+  }) {
     try {
       const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-details/search`, { params });
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to search plan details";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to search plan details"));
     }
   },
 
-  async createPlanDetails(data: any) {
+  async createPlanDetails(data: {
+    annualPlanId: string;
+    plannerId: string;
+    machineId: string;
+    monthsOfMaintenance: string;
+    description?: string;
+  }) {
     try {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/plan-details`, data);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to create plan details";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to create plan details"));
     }
   },
 
-  async searchPlanStatuses(params: any) {
+  async searchPlanStatuses(params: {
+    planType?: string;
+    actionType?: string;
+    planId?: string;
+    performedBy?: string;
+    from?: string;
+    to?: string;
+  }) {
     try {
       const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-status/search`, { params });
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to search plan statuses";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to search plan statuses"));
     }
   },
 
-  async changePlanStatus(data: any) {
+  async changePlanStatus(data: {
+    planId: string;
+    planType: string;
+    actionType: string;
+    performedBy: string;
+    remark?: string;
+  }) {
     try {
       const response = await axios.post(`${API_WORK_ORDER_URL}/maintenance-planning/plan-status/change`, data);
       return response.data;
     } catch (err: unknown) {
-      const axiosError = err as any;
-      let message = "Failed to change plan status";
-      if (axiosError.response?.data?.message) message = axiosError.response.data.message;
-      throw new Error(message);
+      throw new Error(getApiErrorMessage(err, "Failed to change plan status"));
     }
-  }
+  },
+
+  async getAllPlanChanges() {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-changes`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch plan changes"));
+    }
+  },
+
+  async getPlanChangeById(id: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-changes/${encodeURIComponent(id)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch plan change"));
+    }
+  },
+
+  async getPlanChangesByRequestedBy(requestedBy: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-changes/requested-by/${encodeURIComponent(requestedBy)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch requester plan changes"));
+    }
+  },
+
+  async getPlanChangesByMonthlyPlan(monthlyPlanId: string) {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/plan-changes/monthly-plan/${encodeURIComponent(monthlyPlanId)}`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch monthly plan changes"));
+    }
+  },
+
+  async getMachinesNeedingMonthlyPlans() {
+    try {
+      const response = await axios.get(`${API_WORK_ORDER_URL}/maintenance-planning/machines/needing-monthly-plans`);
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to fetch machines needing monthly plans"));
+    }
+  },
 };

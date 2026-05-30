@@ -64,12 +64,15 @@ export function MaintenanceRequestDetailPage({ requestId, onBack, onSuccess }: M
     setLoading(true);
     setError('');
     try {
-      // For now, we'll get the request from the pending list
-      // In a real implementation, you'd have a getById endpoint
-      const pendingRequests = await maintenanceRequestApi.getPending();
-      const foundRequest = Array.isArray(pendingRequests) 
-        ? pendingRequests.find((r: MaintenanceRequest) => r.id === requestId)
-        : pendingRequests.find?.((r: MaintenanceRequest) => r.id === requestId);
+      const [pendingRequests, myRequests] = await Promise.all([
+        maintenanceRequestApi.getPending().catch(() => []),
+        maintenanceRequestApi.getMyRequests().catch(() => []),
+      ]);
+      const allRequests = [
+        ...(Array.isArray(pendingRequests) ? pendingRequests : []),
+        ...(Array.isArray(myRequests) ? myRequests : []),
+      ];
+      const foundRequest = allRequests.find((r: MaintenanceRequest) => r.id === requestId);
 
       if (!foundRequest) {
         setError('Maintenance request not found');
@@ -122,7 +125,7 @@ export function MaintenanceRequestDetailPage({ requestId, onBack, onSuccess }: M
           setActionLoading(false);
           return;
         }
-        await maintenanceRequestApi.reject(request.id, { reason: rejectReason.trim() });
+        await maintenanceRequestApi.reject(request.id, rejectReason.trim());
         setSuccess('Request rejected successfully.');
       }
 

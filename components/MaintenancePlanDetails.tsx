@@ -29,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { ArrowLeft, Plus, Play, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import { ArrowLeft, Plus, Play, CheckCircle2, AlertCircle, Search, CalendarDays, User, Wrench, Clock, RefreshCw } from "lucide-react";
 import { maintenancePlanningApi, workOrderApi, assetApi } from "@/lib/api";
 import { UserInfo } from "@/types";
 
@@ -43,6 +43,8 @@ type MaintenancePlanDetailsProps = {
 export function MaintenancePlanDetails({ planId, planType, user, onBack }: MaintenancePlanDetailsProps) {
   const [details, setDetails] = useState<any[]>([]);
   const [statuses, setStatuses] = useState<any[]>([]);
+  const [planChanges, setPlanChanges] = useState<any[]>([]);
+  const [monthlyPlan, setMonthlyPlan] = useState<any | null>(null);
   const [assets, setAssets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -50,11 +52,15 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
 
   const [isCreateDetailOpen, setIsCreateDetailOpen] = useState(false);
   const [isChangeStatusOpen, setIsChangeStatusOpen] = useState(false);
+  const [isScheduleChangeOpen, setIsScheduleChangeOpen] = useState(false);
+  const [isPlanChangeLookupOpen, setIsPlanChangeLookupOpen] = useState(false);
+  const [selectedPlanChange, setSelectedPlanChange] = useState<any | null>(null);
+  const [planChangeLookupId, setPlanChangeLookupId] = useState("");
+  const [planChangeSearch, setPlanChangeSearch] = useState("");
 
   const [newDetail, setNewDetail] = useState({
     taskName: "",
     description: "",
-    estimatedHours: 1,
     assetId: "",
     assetSearch: "",
     monthsOfMaintenance: Array(12).fill(false),
@@ -62,18 +68,27 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
 
   const [newStatus, setNewStatus] = useState({
     actionType: "PENDING_VERIFICATION",
-    comments: "",
+    remark: "",
   });
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scheduleChange, setScheduleChange] = useState({
+    newNextMntPlanFrom: "",
+    newNextMntPlanTo: "",
+    reasonJustification: "",
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const detailsData = await maintenancePlanningApi.searchPlanDetails({ 
-        annualPlanId: planType === 'annual' ? planId : undefined,
-      });
+      const monthlyData = planType === "monthly" ? await maintenancePlanningApi.getMonthlyPlanById(planId) : null;
+      const detailsData = await maintenancePlanningApi.searchPlanDetails(
+        planType === "annual"
+          ? { annualPlanId: planId }
+          : { id: monthlyData?.planDetailsId },
+      );
       const statusData = await maintenancePlanningApi.searchPlanStatuses({ planId });
+      const changesData = planType === "monthly" ? await maintenancePlanningApi.getPlanChangesByMonthlyPlan(planId) : [];
       const toArray = (res: any): any[] => {
         if (Array.isArray(res)) return res;
         if (res && Array.isArray(res.data)) return res.data;
@@ -84,12 +99,14 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
 
       setDetails(toArray(detailsData));
       setStatuses(toArray(statusData));
+      setPlanChanges(toArray(changesData));
+      setMonthlyPlan(monthlyData);
     } catch (err: any) {
       setError(err.message || "Failed to fetch plan data");
     } finally {
       setLoading(false);
     }
-  }, [planId]);
+  }, [planId, planType]);
 
   useEffect(() => {
     fetchData();
@@ -108,31 +125,32 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
   }, [fetchData]);
 
   const handleCreateDetail = async () => {
-    if (!newDetail.taskName || !newDetail.assetId) {
-      setError("Task name and asset are required.");
+    if (!newDetail.assetId || !user?.id) {
+      setError("Asset and logged-in planner ID are required.");
+      return;
+    }
+    if (planType !== "annual") {
+      setError("Plan details can only be added to annual plans. Monthly plans are created from existing plan details.");
       return;
     }
 
     setIsProcessing(true);
     setError("");
     try {
-      const monthsStr = newDetail.monthsOfMaintenance.map(m => m ? '1' : '0').join('');
+      const monthsStr = newDetail.monthsOfMaintenance
+        .map((selected) => selected ? "1" : "0")
+        .join("");
       
       await maintenancePlanningApi.createPlanDetails({
         annualPlanId: planType === 'annual' ? planId : undefined,
-        monthlyPlanId: planType === 'monthly' ? planId : undefined,
-        planType: planType.toUpperCase(),
-        taskName: newDetail.taskName,
         description: newDetail.description,
-        estimatedDuration: newDetail.estimatedHours,
-        assetId: newDetail.assetId,
         machineId: newDetail.assetId,
-        plannerId: user?.id ?? null,
-        monthsOfMaintenance: planType === 'annual' ? monthsStr : undefined,
+        plannerId: user.id,
+        monthsOfMaintenance: monthsStr,
       });
       setSuccess("Plan detail added successfully");
       setIsCreateDetailOpen(false);
-      setNewDetail({ taskName: "", description: "", estimatedHours: 1, assetId: "", assetSearch: "", monthsOfMaintenance: Array(12).fill(false) });
+      setNewDetail({ taskName: "", description: "", assetId: "", assetSearch: "", monthsOfMaintenance: Array(12).fill(false) });
       fetchData();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err: any) {
@@ -149,11 +167,12 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
         planId,
         planType: planType.toUpperCase(),
         actionType: newStatus.actionType,
-        comments: newStatus.comments,
+        performedBy: user?.id || "",
+        remark: newStatus.remark,
       });
       setSuccess("Status updated successfully");
       setIsChangeStatusOpen(false);
-      setNewStatus({ actionType: "PENDING_VERIFICATION", comments: "" });
+      setNewStatus({ actionType: "PENDING_VERIFICATION", remark: "" });
       fetchData();
       setTimeout(() => setSuccess(""), 4000);
     } catch (err: any) {
@@ -167,8 +186,7 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
     setIsProcessing(true);
     try {
       await workOrderApi.createFromPlan({
-        monthlyPlanId: planType === "monthly" ? planId : undefined,
-        planDetailId: detailId,
+        monthlyPlanId: planId,
         assignments: [{ userId: user?.id as string, assignmentRole: "LEAD" }],
       });
       setSuccess("Work Order generated from plan!");
@@ -187,7 +205,101 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
     a.serialNumber?.toLowerCase().includes(newDetail.assetSearch.toLowerCase())
   );
 
+  const formatMaintenanceMonths = (months?: string) => {
+    if (!months) return "—";
+    const labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const selected = months.length === 12 && /^[01]+$/.test(months)
+      ? months.split("").map((value, index) => value === "1" ? labels[index] : null).filter(Boolean)
+      : months.split(",").map((month) => labels[Number(month.trim()) - 1] || month.trim()).filter(Boolean);
+
+    return selected.length ? selected.join(", ") : "—";
+  };
+
+  const handleRequestScheduleChange = async () => {
+    if (!user?.id || !scheduleChange.newNextMntPlanFrom || !scheduleChange.newNextMntPlanTo || !scheduleChange.reasonJustification.trim()) {
+      setError("New dates, reason, and logged-in user are required.");
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      await maintenancePlanningApi.requestMonthlyPlanScheduleChange({
+        monthlyPlanId: planId,
+        newNextMntPlanFrom: scheduleChange.newNextMntPlanFrom,
+        newNextMntPlanTo: scheduleChange.newNextMntPlanTo,
+        reasonJustification: scheduleChange.reasonJustification.trim(),
+        changeRequestedBy: user.id,
+      });
+      setSuccess("Schedule change requested");
+      setIsScheduleChangeOpen(false);
+      setScheduleChange({ newNextMntPlanFrom: "", newNextMntPlanTo: "", reasonJustification: "" });
+      await fetchData();
+    } catch (err: any) {
+      setError(err.message || "Failed to request schedule change");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLoadPlanChangeById = async () => {
+    const id = planChangeLookupId.trim();
+    if (!id) return;
+    setIsProcessing(true);
+    try {
+      const change = await maintenancePlanningApi.getPlanChangeById(id);
+      setSelectedPlanChange(change);
+      setIsPlanChangeLookupOpen(false);
+      setPlanChangeLookupId("");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch plan change");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLoadMyPlanChanges = async () => {
+    if (!user?.id) {
+      setError("Logged-in user ID is required.");
+      return;
+    }
+    try {
+      const changes = await maintenancePlanningApi.getPlanChangesByRequestedBy(user.id);
+      setPlanChanges(Array.isArray(changes) ? changes : []);
+      setSuccess("Loaded your plan change requests");
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch your plan changes");
+    }
+  };
+
+  const formatDate = (date?: string) => {
+    if (!date) return "—";
+    const parsed = new Date(date);
+    return isNaN(parsed.getTime()) ? "—" : parsed.toLocaleDateString();
+  };
+
+  const openDetails = details.filter(
+    (detail: any) => !detail.workOrderId && !detail.workOrderCreated && detail.status !== 'WORK_ORDER_CREATED' && detail.status !== 'GENERATED' && detail.status !== 'COMPLETED',
+  );
+
+  const primaryDetail = details[0];
+  const primaryAsset = primaryDetail ? assets.find((a) => a.id === primaryDetail.machineId) : null;
+
   const selectedAsset = assets.find((a) => a.id === newDetail.assetId);
+  const filteredPlanChanges = planChanges.filter((change: any) => {
+    const query = planChangeSearch.trim().toLowerCase();
+    if (!query) return true;
+    return [
+      change.id,
+      change.reasonJustification,
+      change.status,
+      change.newNextMntPlanFrom,
+      change.newNextMntPlanTo,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(query);
+  });
 
   return (
     <div className="space-y-6">
@@ -204,9 +316,16 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
           <Button variant="outline" onClick={() => setIsChangeStatusOpen(true)}>
             Update Status
           </Button>
-          <Button onClick={() => setIsCreateDetailOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" /> Add Detail
-          </Button>
+          {planType === "annual" && (
+            <Button onClick={() => setIsCreateDetailOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Add Detail
+            </Button>
+          )}
+          {planType === "monthly" && (
+            <Button variant="outline" onClick={() => setIsScheduleChangeOpen(true)}>
+              Request Schedule Change
+            </Button>
+          )}
         </div>
       </div>
 
@@ -225,55 +344,168 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <h3 className="text-lg font-semibold mb-4">Plan Execution Details</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task Name</TableHead>
-                  <TableHead>Asset</TableHead>
-                  <TableHead>Est. Hours</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {details
-                  .filter((detail: any) => !detail.workOrderId && !detail.workOrderCreated && detail.status !== 'WORK_ORDER_CREATED' && detail.status !== 'GENERATED' && detail.status !== 'COMPLETED')
-                  .map((detail: any) => (
-                  <TableRow key={detail.id}>
-                    <TableCell className="font-medium">{detail.description || detail.taskName || "—"}</TableCell>
-                    <TableCell>
-                      <span className="text-sm text-slate-700">
-                        {assets.find((a) => a.id === detail.machineId)?.name || detail.machineId}
-                      </span>
-                    </TableCell>
-                    <TableCell>{detail.estimatedDuration || detail.estimatedHours || detail.estimatedHour || detail.estimatedTime || detail.duration || 0}h</TableCell>
-                    <TableCell>
-                      {planType === "monthly" ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleGenerateWorkOrder(detail.id)}
-                          disabled={isProcessing}
-                        >
-                          <Play className="w-3 h-3 mr-1" /> Generate WO
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-slate-500">Only from Monthly Plans</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {details.filter((detail: any) => !detail.workOrderId && !detail.workOrderCreated && detail.status !== 'WORK_ORDER_CREATED' && detail.status !== 'GENERATED' && detail.status !== 'COMPLETED').length === 0 && !loading && (
+          {planType === "annual" ? (
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Annual Schedule Details</h3>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-slate-500">
-                      No details found for this plan. Add one to get started.
-                    </TableCell>
+                    <TableHead>Task Name</TableHead>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Scheduled Months</TableHead>
+                    <TableHead>Next Step</TableHead>
                   </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {openDetails.map((detail: any) => (
+                    <TableRow key={detail.id}>
+                      <TableCell className="font-medium">{detail.description || detail.taskName || "—"}</TableCell>
+                      <TableCell>
+                        <span className="text-sm text-slate-700">
+                          {assets.find((a) => a.id === detail.machineId)?.name || detail.machineId}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatMaintenanceMonths(detail.monthsOfMaintenance)}</TableCell>
+                      <TableCell>
+                        <span className="text-xs text-slate-500">Create monthly plan first</span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {openDetails.length === 0 && !loading && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-slate-500">
+                        No details found for this plan. Add one to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          ) : (
+            <div className="space-y-5">
+              <Card className="overflow-hidden border-blue-100">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-blue-100">Monthly execution</p>
+                      <h3 className="text-2xl font-semibold mt-1">
+                        {primaryDetail?.description || "Maintenance execution plan"}
+                      </h3>
+                    </div>
+                    <Badge className="bg-white/15 text-white border border-white/20">
+                      {monthlyPlan?.status || "UNKNOWN"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                        <CalendarDays className="w-4 h-4" /> Execution Window
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {formatDate(monthlyPlan?.nextMntPlanFrom)} - {formatDate(monthlyPlan?.nextMntPlanTo)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                        <User className="w-4 h-4" /> Foreman
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900">{monthlyPlan?.formanId || "—"}</p>
+                    </div>
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                        <Wrench className="w-4 h-4" /> Asset
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {primaryAsset?.name || primaryDetail?.machineId || "—"}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border bg-slate-50 p-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                        <Clock className="w-4 h-4" /> Annual Schedule
+                      </div>
+                      <p className="text-lg font-semibold text-slate-900">
+                        {formatMaintenanceMonths(primaryDetail?.monthsOfMaintenance)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {(monthlyPlan?.machineCondition || monthlyPlan?.remark) && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                      <p className="text-sm font-medium text-slate-900 mb-2">Execution Notes</p>
+                      {monthlyPlan?.machineCondition && <p className="text-sm text-slate-600">Condition: {monthlyPlan.machineCondition}</p>}
+                      {monthlyPlan?.remark && <p className="text-sm text-slate-600 mt-1">Remark: {monthlyPlan.remark}</p>}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 p-4">
+                    <div>
+                      <p className="font-medium text-blue-950">Ready for work order execution</p>
+                      <p className="text-sm text-blue-700">Generate the preventive work order from this monthly plan.</p>
+                    </div>
+                    <Button
+                      onClick={() => handleGenerateWorkOrder(primaryDetail?.id || planId)}
+                      disabled={isProcessing || monthlyPlan?.workOrderCreated || !primaryDetail}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      {monthlyPlan?.workOrderCreated ? "WO Created" : "Generate WO"}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">Schedule Change Requests</h3>
+                    <p className="text-sm text-slate-500">Review, lookup, and track reschedule requests.</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setIsPlanChangeLookupOpen(true)}>Find by ID</Button>
+                    <Button variant="outline" size="sm" onClick={handleLoadMyPlanChanges}>Mine</Button>
+                  </div>
+                </div>
+                  {selectedPlanChange && (
+                    <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="font-medium text-blue-950">Lookup Result</p>
+                        <Badge variant="outline" className="bg-white">{selectedPlanChange.status}</Badge>
+                      </div>
+                      <p className="text-sm text-blue-800 mt-1">{selectedPlanChange.reasonJustification || selectedPlanChange.id}</p>
+                      <p className="text-xs text-blue-700 mt-2">
+                        Proposed: {formatDate(selectedPlanChange.newNextMntPlanFrom)} - {formatDate(selectedPlanChange.newNextMntPlanTo)}
+                      </p>
+                    </div>
+                  )}
+                {planChanges.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {planChanges.map((change: any) => (
+                      <div key={change.id} className="rounded-xl border bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-slate-900">{change.reasonJustification || "Schedule change"}</p>
+                          <Badge variant="outline">{change.status}</Badge>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                          {formatDate(change.newNextMntPlanFrom)} - {formatDate(change.newNextMntPlanTo)}
+                        </p>
+                        {change.changeRequestedAt && (
+                          <p className="text-xs text-slate-400 mt-1">Requested {formatDate(change.changeRequestedAt)}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed bg-slate-50 p-6 text-center">
+                    <RefreshCw className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="font-medium text-slate-700">No schedule changes yet</p>
+                    <p className="text-sm text-slate-500">Use Request Schedule Change when this monthly window needs to move.</p>
+                  </div>
                 )}
-              </TableBody>
-            </Table>
-          </Card>
+              </Card>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -290,7 +522,7 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
                         : "—"}
                     </span>
                   </div>
-                  {s.comments && <p className="text-sm text-slate-600">{s.comments}</p>}
+                  {(s.remark || s.comments) && <p className="text-sm text-slate-600">{s.remark || s.comments}</p>}
                 </div>
               ))}
               {statuses.length === 0 && !loading && (
@@ -302,9 +534,9 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
       </div>
 
       {/* Add Detail Dialog */}
-      <Dialog open={isCreateDetailOpen} onOpenChange={(open) => {
+        <Dialog open={isCreateDetailOpen} onOpenChange={(open) => {
         setIsCreateDetailOpen(open);
-        if (!open) setNewDetail({ taskName: "", description: "", estimatedHours: 1, assetId: "", assetSearch: "", monthsOfMaintenance: Array(12).fill(false) });
+        if (!open) setNewDetail({ taskName: "", description: "", assetId: "", assetSearch: "", monthsOfMaintenance: Array(12).fill(false) });
       }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -388,18 +620,6 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
               )}
             </div>
 
-            {/* Estimated Hours */}
-            <div className="space-y-2">
-              <Label>Estimated Hours</Label>
-              <Input
-                type="number"
-                min="0.5"
-                step="0.5"
-                value={newDetail.estimatedHours}
-                onChange={(e) => setNewDetail({ ...newDetail, estimatedHours: parseFloat(e.target.value) || 1 })}
-              />
-            </div>
-
             {/* Months of Maintenance (Annual only) */}
             {planType === "annual" && (
               <div className="space-y-2">
@@ -444,7 +664,7 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateDetailOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateDetail} disabled={isProcessing || !newDetail.taskName || !newDetail.assetId || (planType === 'annual' && !newDetail.monthsOfMaintenance.some(Boolean))}>
+            <Button onClick={handleCreateDetail} disabled={isProcessing || !newDetail.assetId || (planType === 'annual' && !newDetail.monthsOfMaintenance.some(Boolean))}>
               {isProcessing ? "Saving..." : "Save Detail"}
             </Button>
           </DialogFooter>
@@ -461,18 +681,18 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
               <Select value={newStatus.actionType} onValueChange={(val) => setNewStatus({ ...newStatus, actionType: val })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENDING_VERIFICATION">Submit for Verification</SelectItem>
-                  <SelectItem value="PENDING_APPROVAL">Submit for Approval</SelectItem>
+                  <SelectItem value="PENDING_VERIFICATION">Send for Verification</SelectItem>
+                  <SelectItem value="PENDING_APPROVAL">Send for Approval</SelectItem>
                   <SelectItem value="APPROVED">Approve Plan</SelectItem>
                   <SelectItem value="REJECTED">Reject Plan</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Comments / Notes</Label>
+              <Label>Remark</Label>
               <Textarea
-                value={newStatus.comments}
-                onChange={(e) => setNewStatus({ ...newStatus, comments: e.target.value })}
+                value={newStatus.remark}
+                onChange={(e) => setNewStatus({ ...newStatus, remark: e.target.value })}
                 rows={3}
               />
             </div>
@@ -481,6 +701,110 @@ export function MaintenancePlanDetails({ planId, planType, user, onBack }: Maint
             <Button variant="outline" onClick={() => setIsChangeStatusOpen(false)}>Cancel</Button>
             <Button onClick={handleChangeStatus} disabled={isProcessing}>
               {isProcessing ? "Updating..." : "Update Status"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isScheduleChangeOpen} onOpenChange={setIsScheduleChangeOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Request Schedule Change</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>New Start Date</Label>
+                <Input
+                  type="date"
+                  value={scheduleChange.newNextMntPlanFrom}
+                  onChange={(e) => setScheduleChange({ ...scheduleChange, newNextMntPlanFrom: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>New End Date</Label>
+                <Input
+                  type="date"
+                  value={scheduleChange.newNextMntPlanTo}
+                  onChange={(e) => setScheduleChange({ ...scheduleChange, newNextMntPlanTo: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Reason</Label>
+              <Textarea
+                value={scheduleChange.reasonJustification}
+                onChange={(e) => setScheduleChange({ ...scheduleChange, reasonJustification: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScheduleChangeOpen(false)}>Cancel</Button>
+            <Button onClick={handleRequestScheduleChange} disabled={isProcessing || !scheduleChange.newNextMntPlanFrom || !scheduleChange.newNextMntPlanTo || !scheduleChange.reasonJustification.trim()}>
+              {isProcessing ? "Requesting..." : "Request Change"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPlanChangeLookupOpen} onOpenChange={setIsPlanChangeLookupOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Find Schedule Change</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-600">
+              Search existing schedule change requests and select one to inspect. Use direct ID lookup only if the request is not listed here.
+            </div>
+
+            <div className="space-y-2">
+              <Label>Search Requests</Label>
+              <Input
+                value={planChangeSearch}
+                onChange={(e) => setPlanChangeSearch(e.target.value)}
+                placeholder="Search by reason, status, or date"
+              />
+            </div>
+
+            <div className="max-h-72 overflow-y-auto rounded-xl border bg-white p-2 space-y-2">
+              {filteredPlanChanges.length > 0 ? (
+                filteredPlanChanges.map((change: any) => (
+                  <button
+                    key={change.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlanChange(change);
+                      setIsPlanChangeLookupOpen(false);
+                      setPlanChangeSearch("");
+                    }}
+                    className="w-full rounded-lg border border-slate-200 p-3 text-left hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-slate-900">{change.reasonJustification || "Schedule change"}</p>
+                      <Badge variant="outline">{change.status}</Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Proposed: {formatDate(change.newNextMntPlanFrom)} - {formatDate(change.newNextMntPlanTo)}
+                    </p>
+                  </button>
+                ))
+              ) : (
+                <div className="py-8 text-center text-sm text-slate-500">No matching schedule changes found.</div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Direct ID Lookup</Label>
+              <Input
+                value={planChangeLookupId}
+                onChange={(e) => setPlanChangeLookupId(e.target.value)}
+                placeholder="Optional: paste plan change UUID"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPlanChangeLookupOpen(false)}>Cancel</Button>
+            <Button onClick={handleLoadPlanChangeById} disabled={isProcessing || !planChangeLookupId.trim()}>
+              {isProcessing ? "Searching..." : "Find Request"}
             </Button>
           </DialogFooter>
         </DialogContent>
