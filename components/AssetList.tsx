@@ -52,29 +52,59 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
   const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (page = currentPage) => {
     setLoading(true);
     setError("");
     try {
-      const response = await assetApi.getAll({
-        page: currentPage,
-        limit,
-        search: searchTerm,
-        userRole: user.role,
-      });
+      const activeSearch = searchTerm.trim().toLowerCase();
+      const response = await assetApi.getAll();
 
       // Normalize response: assetApi.getAll may return an array or an object { data, pagination }
+      let assetData: Asset[] = [];
+      let pagination: any = {};
+
       if (Array.isArray(response)) {
-        setAssets(response);
-        setTotal(response.length);
-        setTotalPages(1);
+        assetData = response;
       } else {
-        setAssets(response.data || []);
-        const pagination = response.pagination || {};
-        setTotal(
-          pagination.total ?? (response.data ? response.data.length : 0)
-        );
-        setTotalPages(pagination.totalPages ?? 1);
+        assetData = response.data || [];
+        pagination = response.pagination || {};
+      }
+
+      if (activeSearch) {
+        let serialMatch: Asset | null = null;
+        try {
+          serialMatch = await assetApi.getBySerialNumber(searchTerm.trim());
+        } catch {
+          serialMatch = null;
+        }
+
+        const filtered = assetData.filter((asset) => {
+          const searchableText = [
+            asset.name,
+            asset.serialNumber,
+            asset.modelNumber,
+            asset.currentStatus,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchableText.includes(activeSearch);
+        });
+
+        const merged = serialMatch && !filtered.some((asset) => asset.id === serialMatch?.id)
+          ? [serialMatch, ...filtered]
+          : filtered;
+
+        const start = (page - 1) * limit;
+        setAssets(merged.slice(start, start + limit));
+        setTotal(merged.length);
+        setTotalPages(Math.max(1, Math.ceil(merged.length / limit)));
+      } else {
+        const start = (page - 1) * limit;
+        setAssets(assetData.slice(start, start + limit));
+        setTotal(assetData.length);
+        setTotalPages(Math.max(1, Math.ceil(assetData.length / limit)));
       }
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message || "Failed to fetch assets";
@@ -90,7 +120,7 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchAssets();
+    fetchAssets(1);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -181,9 +211,6 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-3 px-4 text-sm text-slate-600">
-                      ID
-                    </th>
-                    <th className="text-left py-3 px-4 text-sm text-slate-600">
                       Name
                     </th>
                     <th className="text-left py-3 px-4 text-sm text-slate-600">
@@ -206,9 +233,6 @@ export function AssetList({ user, onViewAsset, onEditAsset }: AssetListProps) {
                 <tbody>
                   {assets?.map((asset) => (
                     <tr key={asset.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4 text-sm text-slate-900">
-                        {asset.id}
-                      </td>
                       <td className="py-3 px-4">
                         <div>
                           <p className="text-sm text-slate-900">{asset.name}</p>

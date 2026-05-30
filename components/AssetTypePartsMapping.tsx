@@ -87,6 +87,7 @@ export function AssetTypePartsMapping({
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [assetTypesUsingSelectedPart, setAssetTypesUsingSelectedPart] = useState<AssetType[]>([]);
 
   const hasAccess = user.role === "Administrator";
 
@@ -260,9 +261,22 @@ export function AssetTypePartsMapping({
 
   const openCreateDialog = () => {
     setFormData(initialFormData);
+    setAssetTypesUsingSelectedPart([]);
     setFormErrors({});
     setErrorMessage("");
     setIsCreateDialogOpen(true);
+  };
+
+  const handlePartSelection = async (partId: string) => {
+    setFormData({ ...formData, partId });
+    setFormErrors({ ...formErrors, partId: undefined });
+    setErrorMessage("");
+    try {
+      const data = await assetTypePartApi.getAssetTypesByPart(partId);
+      setAssetTypesUsingSelectedPart(Array.isArray(data) ? data.map(normalizeAssetType) : []);
+    } catch {
+      setAssetTypesUsingSelectedPart([]);
+    }
   };
 
   if (!hasAccess) {
@@ -515,11 +529,7 @@ export function AssetTypePartsMapping({
               <Label htmlFor="partId">Spare Part *</Label>
               <Select
                 value={formData.partId}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, partId: value });
-                  setFormErrors({ ...formErrors, partId: undefined });
-                  setErrorMessage("");
-                }}
+                onValueChange={handlePartSelection}
               >
                 <SelectTrigger
                   className={formErrors.partId ? "border-red-500" : ""}
@@ -541,6 +551,16 @@ export function AssetTypePartsMapping({
               </Select>
               {formErrors.partId && (
                 <p className="text-xs text-red-600 mt-1">{formErrors.partId}</p>
+              )}
+              {assetTypesUsingSelectedPart.length > 0 && (
+                <div className="mt-2 rounded-lg border bg-slate-50 p-3">
+                  <p className="text-xs text-slate-500 mb-2">This part is already used by:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {assetTypesUsingSelectedPart.map((type) => (
+                      <Badge key={type.id} variant="outline">{type.name}</Badge>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 

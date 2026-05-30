@@ -46,10 +46,11 @@ import {
   Users,
   Wrench,
   Package,
+  Trash2,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { UserInfo, WorkOrderDetails, SparePart } from "@/types";
-import { workOrderApi, sparePartApi, userApi } from "@/lib/api";
+import { UserInfo, WorkOrderDetails, SparePart, WorkOrderTask, WorkOrderAssignment, Vendor } from "@/types";
+import { workOrderApi, sparePartApi, userApi, vendorApi } from "@/lib/api";
 
 type UserRow = { id: string; name: string; email: string; role?: string; isActive?: boolean };
 
@@ -62,12 +63,13 @@ type WorkOrderDetailProps = {
 
 const statusConfig: Record<string, { color: string; bgColor: string; borderColor: string; icon: React.ComponentType<{ className?: string }> }> = {
   DRAFT:           { color: "text-gray-700",   bgColor: "bg-gray-100",   borderColor: "border-gray-300",   icon: Clock },
-  NEW:             { color: "text-blue-700",   bgColor: "bg-blue-100",   borderColor: "border-blue-300",   icon: Clock },
   ASSIGNED:        { color: "text-purple-700", bgColor: "bg-purple-100", borderColor: "border-purple-300", icon: User },
   IN_PROGRESS:     { color: "text-orange-700", bgColor: "bg-orange-100", borderColor: "border-orange-300", icon: Activity },
   ON_HOLD:         { color: "text-yellow-700", bgColor: "bg-yellow-100", borderColor: "border-yellow-300", icon: Pause },
   PENDING_QC:      { color: "text-indigo-700", bgColor: "bg-indigo-100", borderColor: "border-indigo-300", icon: ClipboardList },
-  COMPLETED:       { color: "text-green-700",  bgColor: "bg-green-100",  borderColor: "border-green-300",  icon: CheckCircle2 },
+  CLOSED:          { color: "text-green-700",  bgColor: "bg-green-100",  borderColor: "border-green-300",  icon: CheckCircle2 },
+  CLOSED_WITH_FOLLOW_UP: { color: "text-blue-700", bgColor: "bg-blue-100", borderColor: "border-blue-300", icon: CheckCircle2 },
+  OUTSOURCED_IN_PROGRESS: { color: "text-cyan-700", bgColor: "bg-cyan-100", borderColor: "border-cyan-300", icon: Send },
   CANCELLED:       { color: "text-red-700",    bgColor: "bg-red-100",    borderColor: "border-red-300",    icon: XCircle },
   REWORK_REQUIRED: { color: "text-orange-700", bgColor: "bg-orange-100", borderColor: "border-orange-300", icon: RefreshCw },
 };
@@ -124,6 +126,11 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<WorkOrderTask | null>(null);
+  const [editTaskName, setEditTaskName] = useState("");
+  const [editTaskDescription, setEditTaskDescription] = useState("");
+  const [editTaskSequence, setEditTaskSequence] = useState(1);
+  const [isUpdatingTask, setIsUpdatingTask] = useState(false);
 
   const [isPartDialogOpen, setIsPartDialogOpen] = useState(false);
   const [partId, setPartId] = useState("");
@@ -131,6 +138,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const [isSubmittingPart, setIsSubmittingPart] = useState(false);
 
   const [isLaborDialogOpen, setIsLaborDialogOpen] = useState(false);
+  const [laborTaskId, setLaborTaskId] = useState("");
   const [laborHours, setLaborHours] = useState(1);
   const [laborNotes, setLaborNotes] = useState("");
   const [isSubmittingLabor, setIsSubmittingLabor] = useState(false);
@@ -139,12 +147,25 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const [assigneeId, setAssigneeId] = useState("");
   const [assignRole, setAssignRole] = useState("Technician");
   const [isSubmittingAssign, setIsSubmittingAssign] = useState(false);
+  const [assignmentToRemove, setAssignmentToRemove] = useState<WorkOrderAssignment | null>(null);
+  const [isRemovingAssignment, setIsRemovingAssignment] = useState(false);
+
+  const [isInspectionDialogOpen, setIsInspectionDialogOpen] = useState(false);
+  const [inspectionFindings, setInspectionFindings] = useState("");
+  const [inspectionRecommendation, setInspectionRecommendation] = useState("");
+  const [isSubmittingInspection, setIsSubmittingInspection] = useState(false);
+
+  const [isOutsourcingDialogOpen, setIsOutsourcingDialogOpen] = useState(false);
+  const [vendorId, setVendorId] = useState("");
+  const [estimatedCost, setEstimatedCost] = useState("");
+  const [isSubmittingOutsourcing, setIsSubmittingOutsourcing] = useState(false);
 
   // Available data for dropdowns
   const [availableParts, setAvailableParts] = useState<SparePart[]>([]);
   const [partSearch, setPartSearch] = useState("");
   const [userSearch, setUserSearch] = useState("");
   const [availableUsers, setAvailableUsers] = useState<UserRow[]>([]);
+  const [availableVendors, setAvailableVendors] = useState<Vendor[]>([]);
 
   const fetchWorkOrderData = useCallback(async () => {
     setLoading(true);
@@ -187,6 +208,14 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
         console.error("Failed to fetch users", err);
         setAvailableUsers([]);
       }
+
+      try {
+        const vendorsData = await vendorApi.getAll();
+        setAvailableVendors(toArray(vendorsData));
+      } catch (err) {
+        console.error("Failed to fetch vendors", err);
+        setAvailableVendors([]);
+      }
     };
 
     fetchDropdownData();
@@ -197,23 +226,8 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     setTimeout(() => setSuccess(""), 4000);
   };
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-    setSubmittingComment(true);
-    try {
-      await workOrderApi.addActivity(workOrderId, {
-        activityType: "comment",
-        description: newComment.trim(),
-        createdBy: user.name,
-      });
-      setNewComment("");
-      showSuccess("Comment added successfully");
-      await fetchWorkOrderData();
-    } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to add comment");
-    } finally {
-      setSubmittingComment(false);
-    }
+  const handleAddComment = () => {
+    setError("Comment creation is not exposed by the Work Order Service API. Existing activity history is read from work order details.");
   };
 
   const handleHold = async () => {
@@ -278,6 +292,10 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   };
 
   const handleQCApprove = async () => {
+    if (!qcComment.trim()) {
+      setError("Quality review comment is required.");
+      return;
+    }
     setIsSubmittingQC(true);
     try {
       await workOrderApi.submitQualityReview(workOrderId, { isApproved: true, comment: qcComment });
@@ -293,6 +311,10 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   };
 
   const handleQCReject = async () => {
+    if (!qcComment.trim()) {
+      setError("Quality review comment is required.");
+      return;
+    }
     setIsSubmittingQC(true);
     try {
       await workOrderApi.submitQualityReview(workOrderId, { isApproved: false, comment: qcComment });
@@ -311,7 +333,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     if (!newStatus) return;
     setIsUpdatingStatus(true);
     try {
-      if (newStatus === "COMPLETED") {
+      if (newStatus === "CLOSED") {
         await workOrderApi.complete(workOrderId, { faultFound: false, notes: "Status updated manually" });
       } else if (newStatus === "ON_HOLD") {
         await workOrderApi.hold(workOrderId, { reason: "Manual status update" });
@@ -319,8 +341,6 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
         await workOrderApi.resume(workOrderId);
       } else if (newStatus === "CANCELLED") {
         await workOrderApi.cancel(workOrderId, "Manual status update");
-      } else if (newStatus === "PENDING_QC") {
-        await workOrderApi.submitQualityReview(workOrderId, { isApproved: false, comment: "Submitted for QC review via status update" });
       } else {
         throw new Error(`Direct transition to ${newStatus} is not supported. Please use the appropriate action buttons to transition the work order properly.`);
       }
@@ -370,12 +390,13 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   };
 
   const handleLogLabor = async () => {
-    if (laborHours <= 0) return;
+    if (!laborTaskId || laborHours <= 0) return;
     setIsSubmittingLabor(true);
     try {
-      await workOrderApi.logLabor(workOrderId, { hoursWorked: laborHours, notes: laborNotes });
+      await workOrderApi.logLabor(workOrderId, { taskId: laborTaskId, hoursWorked: laborHours, notes: laborNotes });
       showSuccess("Labor logged successfully");
       setIsLaborDialogOpen(false);
+      setLaborTaskId("");
       setLaborHours(1);
       setLaborNotes("");
       await fetchWorkOrderData();
@@ -399,6 +420,107 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
       setError(err.message || "Failed to assign user");
     } finally {
       setIsSubmittingAssign(false);
+    }
+  };
+
+  const handleUpdateTaskStatus = async (taskId: string, status: string) => {
+    try {
+      await workOrderApi.updateTaskStatus(taskId, status);
+      showSuccess("Task status updated");
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to update task status");
+    }
+  };
+
+  const openEditTaskDialog = (task: WorkOrderTask) => {
+    setEditingTask(task);
+    setEditTaskName(task.taskName || "");
+    setEditTaskDescription(task.description || "");
+    setEditTaskSequence(task.sequenceOrder || 1);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask || !editTaskName.trim()) return;
+    setIsUpdatingTask(true);
+    try {
+      await workOrderApi.updateTask(editingTask.id, {
+        taskName: editTaskName.trim(),
+        description: editTaskDescription.trim() || undefined,
+        sequenceOrder: editTaskSequence,
+      });
+      showSuccess("Task updated");
+      setEditingTask(null);
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to update task");
+    } finally {
+      setIsUpdatingTask(false);
+    }
+  };
+
+  const handleUpdatePartStatus = async (partRequestId: string, status: string) => {
+    try {
+      await workOrderApi.updatePartRequestStatus(partRequestId, status);
+      showSuccess("Part request status updated");
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to update part request status");
+    }
+  };
+
+  const handleRemoveAssignment = async () => {
+    if (!assignmentToRemove) return;
+    setIsRemovingAssignment(true);
+    try {
+      await workOrderApi.removeAssignment(assignmentToRemove.id);
+      showSuccess("Assignment removed");
+      setAssignmentToRemove(null);
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to remove assignment");
+    } finally {
+      setIsRemovingAssignment(false);
+    }
+  };
+
+  const handleSubmitInspection = async () => {
+    if (!inspectionFindings.trim() || !inspectionRecommendation.trim()) return;
+    setIsSubmittingInspection(true);
+    try {
+      await workOrderApi.submitInspectionResults(workOrderId, {
+        findings: inspectionFindings.trim(),
+        recommendation: inspectionRecommendation.trim(),
+      });
+      showSuccess("Inspection results submitted");
+      setIsInspectionDialogOpen(false);
+      setInspectionFindings("");
+      setInspectionRecommendation("");
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to submit inspection results");
+    } finally {
+      setIsSubmittingInspection(false);
+    }
+  };
+
+  const handleApproveOutsourcing = async () => {
+    if (!vendorId.trim()) return;
+    setIsSubmittingOutsourcing(true);
+    try {
+      await workOrderApi.approveOutsourcing(workOrderId, {
+        vendorId: vendorId.trim(),
+        estimatedCost: Number(estimatedCost) || 0,
+      });
+      showSuccess("Outsourcing approved");
+      setIsOutsourcingDialogOpen(false);
+      setVendorId("");
+      setEstimatedCost("");
+      await fetchWorkOrderData();
+    } catch (err: any) {
+      setError(err.message || "Failed to approve outsourcing");
+    } finally {
+      setIsSubmittingOutsourcing(false);
     }
   };
 
@@ -449,13 +571,20 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const StatusIcon = statusCfg.icon;
   const isAdmin = user.role === "ADMIN" || user.role === "MAINTENANCE_MANAGER";
   const isTech = user.role === "MAINTENANCE_TECHNICIAN" || isAdmin;
+  const isFinalStatus = ["CLOSED", "CLOSED_WITH_FOLLOW_UP", "CANCELLED"].includes(workOrder.status);
 
-  const canHold    = isAdmin && ["NEW", "ASSIGNED", "IN_PROGRESS"].includes(workOrder.status);
+  const canHold    = isAdmin && ["DRAFT", "ASSIGNED", "IN_PROGRESS"].includes(workOrder.status);
   const canResume  = isAdmin && workOrder.status === "ON_HOLD";
-  const canEdit    = isAdmin && !["COMPLETED", "CANCELLED"].includes(workOrder.status);
+  const canEdit    = isAdmin && !isFinalStatus;
   const canComplete= isTech && ["IN_PROGRESS", "ASSIGNED"].includes(workOrder.status);
-  const canCancel  = isAdmin && !["COMPLETED", "CANCELLED"].includes(workOrder.status);
+  const canCancel  = isAdmin && !isFinalStatus;
   const canQC      = isAdmin && workOrder.status === "PENDING_QC";
+  const statusTransitionOptions = [
+    canHold ? { value: "ON_HOLD", label: "On Hold" } : null,
+    canResume ? { value: "IN_PROGRESS", label: "In Progress" } : null,
+    canComplete ? { value: "CLOSED", label: "Closed" } : null,
+    canCancel ? { value: "CANCELLED", label: "Cancelled" } : null,
+  ].filter((option): option is { value: string; label: string } => Boolean(option));
 
   return (
     <div className="space-y-6">
@@ -513,12 +642,22 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
               <XCircle className="w-4 h-4 mr-2" />Cancel
             </Button>
           )}
-          {canEdit && (
+          {statusTransitionOptions.length > 0 && (
             <Button variant="outline" onClick={() => {
-              setNewStatus(workOrder.status);
+              setNewStatus("");
               setIsStatusDialogOpen(true);
             }} className="text-blue-600 border-blue-300 hover:bg-blue-50">
               <RefreshCw className="w-4 h-4 mr-2" />Update Status
+            </Button>
+          )}
+          {canEdit && String(workOrder.workOrderType).toUpperCase() === "INSPECTION" && (
+            <Button variant="outline" onClick={() => setIsInspectionDialogOpen(true)}>
+              Submit Inspection
+            </Button>
+          )}
+          {canEdit && String(workOrder.workOrderType).toUpperCase() === "OUTSOURCING" && (
+            <Button variant="outline" onClick={() => setIsOutsourcingDialogOpen(true)}>
+              Approve Outsourcing
             </Button>
           )}
           {canEdit && onEdit && (
@@ -642,7 +781,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                           <span className="text-xs text-slate-400">{formatDate(activity.createdAt)}</span>
                           <Badge variant="outline" className="text-xs py-0">{activity.activityType?.replace(/_/g, " ")}</Badge>
                         </div>
-                        <p className="text-sm text-slate-700">{activity.description}</p>
+                        <p className="text-sm text-slate-700">{activity.description || activity.notes || activity.metadata || "No details provided."}</p>
                         {activity.oldValue && activity.newValue && (
                           <p className="text-xs text-slate-400 mt-1">
                             {activity.oldValue} &rarr; {activity.newValue}
@@ -728,22 +867,54 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
               </div>
             ) : (
               <div className="space-y-3">
-                {workOrderDetails.tasks?.map((task, index) => (
-                  <div key={task.id} className="flex gap-4 p-4 bg-white border rounded-lg shadow-sm">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 font-bold text-slate-500">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-semibold text-slate-900">{task.taskName}</h4>
-                        <Badge variant="outline" className={task.status === "COMPLETED" ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50"}>
-                          {task.status?.replace(/_/g, " ")}
+                {workOrderDetails.tasks?.map((task, index) => {
+                  const taskStatus = task.status || "PENDING";
+                  const taskStatusClass = taskStatus === "COMPLETED"
+                    ? "bg-green-50 text-green-700 border-green-200"
+                    : taskStatus === "IN_PROGRESS"
+                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                      : "bg-slate-50 text-slate-600 border-slate-200";
+
+                  return (
+                    <div key={task.id} className="overflow-hidden rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between gap-4 border-b bg-slate-50/80 px-4 py-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 font-bold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-slate-900 truncate">{task.taskName}</h4>
+                            <p className="text-xs text-slate-500">Sequence {task.sequenceOrder || index + 1}</p>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className={taskStatusClass}>
+                          {taskStatus.replace(/_/g, " ")}
                         </Badge>
                       </div>
-                      <p className="text-sm text-slate-600">{task.description}</p>
+                      <div className="p-4">
+                        <p className="text-sm text-slate-600 leading-6">{task.description || "No task description provided."}</p>
+                        <div className="mt-4 flex items-center justify-between gap-3 flex-wrap rounded-lg bg-slate-50 p-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">Task Status</Label>
+                            <Select value={taskStatus} onValueChange={(status) => handleUpdateTaskStatus(task.id, status)}>
+                              <SelectTrigger className="h-9 w-44 bg-white text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">Pending</SelectItem>
+                                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                                <SelectItem value="COMPLETED">Completed</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => openEditTaskDialog(task)}>
+                            Edit Task
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -764,20 +935,57 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                 <div className="text-center py-8 text-slate-500 text-sm">No parts requested.</div>
               ) : (
                 <div className="space-y-3">
-                  {workOrderDetails.partRequests?.map((pr) => (
-                    <div key={pr.id} className="flex items-center justify-between p-3 bg-white border rounded-lg shadow-sm">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">Part: {pr.partName || pr.partId}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Requested: {new Date(pr.createdAt).toLocaleDateString()}</p>
+                  {workOrderDetails.partRequests?.map((pr) => {
+                    const partStatus = pr.status || "PENDING";
+                    const partStatusClass = partStatus === "ISSUED" || partStatus === "USED" || partStatus === "FULFILLED"
+                      ? "bg-green-50 text-green-700 border-green-200"
+                      : partStatus === "RETURNED"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-yellow-50 text-yellow-700 border-yellow-200";
+
+                    return (
+                      <div key={pr.id} className="overflow-hidden rounded-xl border bg-white shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between gap-3 border-b bg-slate-50/80 px-4 py-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center flex-shrink-0">
+                              <Package className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate">{pr.partName || pr.partId}</p>
+                              <p className="text-xs text-slate-500">Requested {pr.createdAt ? new Date(pr.createdAt).toLocaleDateString() : "—"}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={partStatusClass}>{partStatus}</Badge>
+                        </div>
+                        <div className="p-4 space-y-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-lg bg-slate-50 p-3">
+                              <p className="text-xs text-slate-500">Requested Qty</p>
+                              <p className="text-lg font-bold text-slate-900">{pr.requestedQuantity}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 p-3">
+                              <p className="text-xs text-slate-500">Consumed Qty</p>
+                              <p className="text-lg font-bold text-slate-900">{pr.consumedQuantity ?? 0}</p>
+                            </div>
+                          </div>
+                          <div className="rounded-lg bg-slate-50 p-3 space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">Part Status</Label>
+                            <Select value={partStatus} onValueChange={(status) => handleUpdatePartStatus(pr.id, status)}>
+                              <SelectTrigger className="h-9 bg-white text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">Pending</SelectItem>
+                                <SelectItem value="ISSUED">Issued</SelectItem>
+                                <SelectItem value="USED">Used</SelectItem>
+                                <SelectItem value="RETURNED">Returned</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold bg-slate-100 px-2 py-1 rounded">Qty: {pr.requestedQuantity}</span>
-                        <Badge variant="outline" className={pr.status === "FULFILLED" ? "bg-green-50 text-green-700 border-green-200" : "bg-slate-50"}>
-                          {pr.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </Card>
@@ -838,11 +1046,14 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
                       {(a.userName || a.userId).charAt(0).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">{a.userName || a.userId}</p>
                       <p className="text-xs font-medium text-blue-600">{a.assignmentRole}</p>
                       <p className="text-xs text-slate-400 mt-0.5">Assigned {new Date(a.createdAt).toLocaleDateString()}</p>
                     </div>
+                    <Button variant="ghost" size="sm" onClick={() => setAssignmentToRemove(a)} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                      <Trash2 className="w-3 h-3 mr-1" /> Remove
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -981,15 +1192,9 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
                 <SelectValue placeholder="Select a status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DRAFT">Draft</SelectItem>
-                <SelectItem value="NEW">New</SelectItem>
-                <SelectItem value="ASSIGNED">Assigned</SelectItem>
-                <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
-                <SelectItem value="ON_HOLD">On Hold</SelectItem>
-                <SelectItem value="PENDING_QC">Pending QC</SelectItem>
-                <SelectItem value="COMPLETED">Completed</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="REWORK_REQUIRED">Rework Required</SelectItem>
+                {statusTransitionOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -1119,6 +1324,21 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
+              <Label>Task</Label>
+              <Select value={laborTaskId} onValueChange={setLaborTaskId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select the task worked on" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workOrderDetails.tasks?.map((task) => (
+                    <SelectItem key={task.id} value={task.id}>
+                      {task.taskName || task.description || task.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label>Hours Worked</Label>
               <Input
                 type="number"
@@ -1140,7 +1360,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsLaborDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleLogLabor} disabled={isSubmittingLabor || laborHours <= 0}>
+            <Button onClick={handleLogLabor} disabled={isSubmittingLabor || !laborTaskId || laborHours <= 0}>
               {isSubmittingLabor ? "Logging..." : "Log Labor"}
             </Button>
           </DialogFooter>
@@ -1219,6 +1439,143 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
             <Button variant="outline" onClick={() => { setIsAssignDialogOpen(false); setUserSearch(""); setAssigneeId(""); }}>Cancel</Button>
             <Button onClick={handleAssignUser} disabled={isSubmittingAssign || !assigneeId}>
               {isSubmittingAssign ? "Assigning..." : "Assign User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>Update task details and execution order.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Task Name</Label>
+              <Input value={editTaskName} onChange={(e) => setEditTaskName(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={editTaskDescription} onChange={(e) => setEditTaskDescription(e.target.value)} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label>Sequence Order</Label>
+              <Input type="number" min="1" value={editTaskSequence} onChange={(e) => setEditTaskSequence(Number(e.target.value) || 1)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTask(null)}>Cancel</Button>
+            <Button onClick={handleUpdateTask} disabled={isUpdatingTask || !editTaskName.trim()}>
+              {isUpdatingTask ? "Saving..." : "Save Task"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!assignmentToRemove} onOpenChange={(open) => !open && setAssignmentToRemove(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Assignment</DialogTitle>
+            <DialogDescription>
+              Remove {assignmentToRemove?.userName || assignmentToRemove?.userId} from this work order team.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignmentToRemove(null)}>Cancel</Button>
+            <Button onClick={handleRemoveAssignment} disabled={isRemovingAssignment} className="bg-red-600 hover:bg-red-700">
+              {isRemovingAssignment ? "Removing..." : "Remove Assignment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isInspectionDialogOpen} onOpenChange={setIsInspectionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit Inspection Results</DialogTitle>
+            <DialogDescription>
+              Choose a recommendation. Internal repair and outsourcing automatically create child work orders.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Findings</Label>
+              <Textarea value={inspectionFindings} onChange={(e) => setInspectionFindings(e.target.value)} rows={4} />
+            </div>
+            <div className="space-y-2">
+              <Label>Recommendation</Label>
+              <Select value={inspectionRecommendation} onValueChange={setInspectionRecommendation}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select inspection outcome" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NO_FAULT_FOUND">No fault found</SelectItem>
+                  <SelectItem value="NEEDS_INTERNAL_REPAIR">Needs internal repair</SelectItem>
+                  <SelectItem value="NEEDS_OUTSOURCE">Needs outsource</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                Needs outsource creates a new OUTSOURCING work order. Approve that new work order after it appears in the Work Orders list.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsInspectionDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmitInspection} disabled={isSubmittingInspection || !inspectionFindings.trim() || !inspectionRecommendation.trim()}>
+              {isSubmittingInspection ? "Submitting..." : "Submit Results"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isOutsourcingDialogOpen} onOpenChange={setIsOutsourcingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Outsourcing</DialogTitle>
+            <DialogDescription>
+              Approve an OUTSOURCING work order created from an inspection recommendation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900">
+            This action moves the work order to OUTSOURCED_IN_PROGRESS and records vendor outsourcing details.
+          </div>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Vendor</Label>
+              {availableVendors.length > 0 ? (
+                <Select value={vendorId} onValueChange={setVendorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVendors.map((vendor) => (
+                      <SelectItem key={vendor.id} value={vendor.id}>
+                        {vendor.name}{vendor.email ? ` - ${vendor.email}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={vendorId} onChange={(e) => setVendorId(e.target.value)} placeholder="Vendor UUID" />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Estimated Cost</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={estimatedCost}
+                onChange={(e) => setEstimatedCost(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsOutsourcingDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleApproveOutsourcing} disabled={isSubmittingOutsourcing || !vendorId.trim()}>
+              {isSubmittingOutsourcing ? "Approving..." : "Approve"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -150,11 +150,9 @@ export function SparePartsManagement() {
   const handleCreate = async () => {
     if (!validateForm()) return;
     try {
-      const payloadApi: Omit<SparePart, "id" | "createdAt" | "updatedAt"> = {
-        partNumber: formData.partNumber,
+      const payloadApi = {
         name: formData.name,
         description: formData.description,
-        quantityOnHand: formData.quantityOnHand,
         reorderThreshold: formData.reorderThreshold,
       };
       const created = await sparePartApi.create(payloadApi);

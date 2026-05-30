@@ -100,10 +100,16 @@ export function MaintenanceRequestForm({ user, open, onOpenChange, onSuccess }: 
 
     setLoading(true);
     try {
+      if (!user.id) {
+        setError('A valid logged-in user ID is required to submit a maintenance request');
+        setLoading(false);
+        return;
+      }
+
       await maintenanceRequestApi.create({
         assetId: formData.assetId,
         description: formData.description.trim(),
-        requestedBy: user.id || "",
+        requestedBy: user.id,
       });
 
       setSuccess('Maintenance request submitted successfully');

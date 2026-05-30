@@ -42,12 +42,13 @@ type WorkOrderListProps = {
 
 const statusConfig: Record<string, { color: string; bgColor: string; icon: React.ComponentType<{ className?: string }> }> = {
   DRAFT:           { color: 'text-gray-600',   bgColor: 'bg-gray-100',   icon: Clock },
-  NEW:             { color: 'text-blue-600',   bgColor: 'bg-blue-100',   icon: Clock },
   ASSIGNED:        { color: 'text-purple-600', bgColor: 'bg-purple-100', icon: Clock },
   IN_PROGRESS:     { color: 'text-orange-600', bgColor: 'bg-orange-100', icon: AlertTriangle },
   ON_HOLD:         { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
   PENDING_QC:      { color: 'text-yellow-600', bgColor: 'bg-yellow-100', icon: Clock },
-  COMPLETED:       { color: 'text-green-600',  bgColor: 'bg-green-100',  icon: CheckCircle2 },
+  CLOSED:          { color: 'text-green-600',  bgColor: 'bg-green-100',  icon: CheckCircle2 },
+  CLOSED_WITH_FOLLOW_UP: { color: 'text-blue-600', bgColor: 'bg-blue-100', icon: CheckCircle2 },
+  OUTSOURCED_IN_PROGRESS: { color: 'text-cyan-600', bgColor: 'bg-cyan-100', icon: Clock },
   CANCELLED:       { color: 'text-red-600',    bgColor: 'bg-red-100',    icon: AlertCircle },
   REWORK_REQUIRED: { color: 'text-red-600',    bgColor: 'bg-red-50',     icon: AlertTriangle },
 };
@@ -59,6 +60,20 @@ const priorityConfig: Record<WorkOrderPriority, { color: string; bgColor: string
   MEDIUM: { color: 'text-blue-700', bgColor: 'bg-blue-50' },
   HIGH: { color: 'text-orange-700', bgColor: 'bg-orange-50' },
   CRITICAL: { color: 'text-red-700', bgColor: 'bg-red-50' }
+};
+
+const normalizePriority = (priority?: string | null): WorkOrderPriority | null => {
+  const value = String(priority || "")
+    .trim()
+    .replace(/[-\s]+/g, "_")
+    .toUpperCase();
+
+  if (!value) return null;
+  if (value.includes("CRITICAL") || value.includes("URGENT")) return "CRITICAL";
+  if (value.includes("HIGH")) return "HIGH";
+  if (value.includes("MEDIUM") || value.includes("NORMAL")) return "MEDIUM";
+  if (value.includes("LOW")) return "LOW";
+  return null;
 };
 
 export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOrderListProps) {
@@ -79,7 +94,14 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
   const [workOrderToDelete, setWorkOrderToDelete] = useState<WorkOrder | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchWorkOrders = async () => {
+  const fetchWorkOrders = async (
+    page = currentPage,
+    filters = {
+      status: statusFilter,
+      priority: priorityFilter,
+      search: searchTerm,
+    },
+  ) => {
     setLoading(true);
     setError("");
     try {
@@ -90,14 +112,6 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
         assignedToUserId?: string;
       } = {};
       
-      if (statusFilter) {
-        params.statuses = [statusFilter];
-      }
-      
-      if (priorityFilter) {
-        // Note: API doesn't support priority filtering directly, we'll filter client-side
-      }
-      
       if (user.role === "Maintenance Worker") {
         // TODO: Get actual user ID from user context
         params.assignedToUserId = "current_user_id";
@@ -107,22 +121,43 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
       
       let workOrdersData = response.data || [];
       
-      // Client-side filtering for priority and search
-      if (priorityFilter) {
-        workOrdersData = workOrdersData.filter((wo: WorkOrder) => wo.priority === priorityFilter);
-      }
-      
-      if (searchTerm) {
-        workOrdersData = workOrdersData.filter((wo: WorkOrder) => 
-          wo.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          wo.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (wo.assetName && wo.assetName.toLowerCase().includes(searchTerm.toLowerCase()))
+      if (filters.status) {
+        const selectedStatus = filters.status.toUpperCase();
+        workOrdersData = workOrdersData.filter(
+          (wo: WorkOrder) => String(wo.status || "").toUpperCase() === selectedStatus,
         );
       }
 
-      setWorkOrders(workOrdersData);
+      if (filters.priority) {
+        const selectedPriority = normalizePriority(filters.priority);
+        workOrdersData = workOrdersData.filter(
+          (wo: WorkOrder) => normalizePriority(wo.priority) === selectedPriority,
+        );
+      }
+      
+      const activeSearch = filters.search.trim().toLowerCase();
+      if (activeSearch) {
+        workOrdersData = workOrdersData.filter((wo: WorkOrder) => {
+          const searchableText = [
+            wo.description,
+            wo.assetId,
+            wo.assetName,
+            wo.workOrderType,
+            wo.status,
+            normalizePriority(wo.priority),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return searchableText.includes(activeSearch);
+        });
+      }
+
+      const start = (page - 1) * limit;
+      setWorkOrders(workOrdersData.slice(start, start + limit));
       setTotal(workOrdersData.length);
-      setTotalPages(Math.ceil(workOrdersData.length / limit));
+      setTotalPages(Math.max(1, Math.ceil(workOrdersData.length / limit)));
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message || "Failed to fetch work orders";
       console.error("Failed to fetch work orders:", err);
@@ -137,7 +172,29 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
 
   const handleSearch = () => {
     setCurrentPage(1);
-    fetchWorkOrders();
+    fetchWorkOrders(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    const nextStatus = value === "all" ? "" : value;
+    setStatusFilter(nextStatus);
+    setCurrentPage(1);
+    fetchWorkOrders(1, {
+      status: nextStatus,
+      priority: priorityFilter,
+      search: searchTerm,
+    });
+  };
+
+  const handlePriorityFilterChange = (value: string) => {
+    const nextPriority = value === "all" ? "" : value;
+    setPriorityFilter(nextPriority);
+    setCurrentPage(1);
+    fetchWorkOrders(1, {
+      status: statusFilter,
+      priority: nextPriority,
+      search: searchTerm,
+    });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -179,7 +236,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
   };
 
   const formatPriority = (priority: WorkOrderPriority) => {
-    return priority.charAt(0).toUpperCase() + priority.slice(1);
+    return priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
   };
 
   return (
@@ -223,21 +280,25 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
               className="pl-10"
             />
           </div>
-          <Select value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
+          <Select value={statusFilter || "all"} onValueChange={handleStatusFilterChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="NEW">New</SelectItem>
+              <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="ASSIGNED">Assigned</SelectItem>
               <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="ON_HOLD">On Hold</SelectItem>
               <SelectItem value="PENDING_QC">Pending QC</SelectItem>
-              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CLOSED">Closed</SelectItem>
+              <SelectItem value="CLOSED_WITH_FOLLOW_UP">Closed With Follow Up</SelectItem>
+              <SelectItem value="OUTSOURCED_IN_PROGRESS">Outsourced In Progress</SelectItem>
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
               <SelectItem value="REWORK_REQUIRED">Rework Required</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={priorityFilter || "all"} onValueChange={(value) => setPriorityFilter(value === "all" ? "" : value)}>
+          <Select value={priorityFilter || "all"} onValueChange={handlePriorityFilterChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Filter by priority" />
             </SelectTrigger>
@@ -295,6 +356,8 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                 <tbody>
                   {workOrders?.map((workOrder) => {
                     const statusCfg = statusConfig[workOrder.status] ?? DEFAULT_STATUS;
+                    const normalizedPriority = normalizePriority(workOrder.priority);
+                    const priorityCfg = normalizedPriority ? priorityConfig[normalizedPriority] : null;
                     const StatusIcon = statusCfg.icon;
                     return (
                       <tr key={workOrder.id} className="border-b hover:bg-gray-50">
@@ -317,10 +380,10 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                           </Badge>
                         </td>
                         <td className="py-3 px-4">
-                          {workOrder.priority ? (
-                            <Badge className={`${(priorityConfig[workOrder.priority] ?? priorityConfig.LOW).bgColor} ${(priorityConfig[workOrder.priority] ?? priorityConfig.LOW).color} border-0`}>
-                              {workOrder.priority === 'CRITICAL' && <Zap className="w-3 h-3 mr-1" />}
-                              {formatPriority(workOrder.priority)}
+                          {normalizedPriority && priorityCfg ? (
+                            <Badge className={`${priorityCfg.bgColor} ${priorityCfg.color} border-0`}>
+                              {normalizedPriority === 'CRITICAL' && <Zap className="w-3 h-3 mr-1" />}
+                              {formatPriority(normalizedPriority)}
                             </Badge>
                           ) : (
                             <span className="text-sm text-slate-400">-</span>
@@ -352,7 +415,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                               </Button>
                             )} */}
                             {(user.role === "ADMIN" || user.role === "MAINTENANCE_MANAGER") &&
-                             workOrder.status !== "COMPLETED" && workOrder.status !== "CANCELLED" && (
+                             !["CLOSED", "CLOSED_WITH_FOLLOW_UP", "CANCELLED"].includes(workOrder.status) && (
                               <Button
                                 variant="ghost"
                                 size="sm"

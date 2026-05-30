@@ -92,19 +92,21 @@ export type PaginationParams = {
 };
 
 export type WorkOrderType =
+  | "CORRECTIVE"
+  | "PREVENTIVE"
   | "INSPECTION"
   | "REPAIR"
-  | "PREVENTIVE"
   | "OUTSOURCING";
 
 export type WorkOrderStatus = 
   | "DRAFT"
-  | "NEW"
   | "ASSIGNED"
   | "IN_PROGRESS" 
   | "ON_HOLD"
   | "PENDING_QC"
-  | "COMPLETED"
+  | "CLOSED"
+  | "CLOSED_WITH_FOLLOW_UP"
+  | "OUTSOURCED_IN_PROGRESS"
   | "CANCELLED"
   | "REWORK_REQUIRED";
 
@@ -116,6 +118,7 @@ export type WorkOrder = {
   status: WorkOrderStatus;
   priority?: WorkOrderPriority;
   assetId: string;
+  assetTypeId?: string;
   assetType?: string;
   assetName?: string; // For display purposes
   description: string;
@@ -134,7 +137,8 @@ export type WorkOrderTask = {
   sequenceOrder: number;
   status: string;
   createdAt: string;
-  updatedAt: string;
+  endedAt?: string;
+  updatedAt?: string;
 };
 
 export type WorkOrderAssignment = {
@@ -148,13 +152,15 @@ export type WorkOrderAssignment = {
 
 export type LaborLog = {
   id: string;
-  workOrderId: string;
+  workOrderId?: string;
+  assignmentId?: string;
   taskId: string;
-  userId: string;
+  userId?: string;
   userName?: string; // For display
   hoursWorked: number;
+  logDate?: string;
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
 };
 
 export type PartRequest = {
@@ -164,8 +170,20 @@ export type PartRequest = {
   partId: string;
   partName?: string; // For display
   requestedQuantity: number;
+  consumedQuantity?: number;
   status: string;
-  createdAt: string;
+  createdAt?: string;
+};
+
+export type OutsourcingDetails = {
+  id: string;
+  workOrderId: string;
+  vendorId: string;
+  trackingEmployeeId?: string;
+  estimatedCost?: number;
+  actualCost?: number;
+  sentToVendorAt?: string;
+  returnedFromVendorAt?: string;
 };
 
 export type WorkOrderDetails = {
@@ -174,15 +192,18 @@ export type WorkOrderDetails = {
   assignments: WorkOrderAssignment[];
   partRequests: PartRequest[];
   laborLogs: LaborLog[];
-  outsourcingDetails?: any;
+  outsourcingDetails?: OutsourcingDetails[];
   activities: WorkOrderActivity[];
 };
 
 export type WorkOrderActivity = {
   id: string;
   workOrderId: string;
-  activityType: "comment" | "status_change" | "assignment" | "completion";
-  description: string;
+  taskId?: string;
+  activityType: string;
+  notes?: string;
+  description?: string;
+  metadata?: string;
   createdBy: string;
   createdByName?: string; // For display purposes
   createdAt: string;
@@ -218,50 +239,94 @@ export type MaintenanceRequest = {
 export type PlanStatusDto = {
   id: string;
   planId: string;
-  planType: "ANNUAL" | "MONTHLY";
-  actionType: "VERIFY" | "APPROVE" | "CONFIRM" | "REJECT" | "OTHER";
-  comments?: string;
+  planType: "ANNUAL" | "MONTHLY" | "PLAN_CHANGE";
+  actionType: "DRAFT" | "PENDING_VERIFICATION" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED";
+  remark?: string;
   performedBy: string;
-  performedAt: string;
+  timestamp: string;
+  comments?: string;
+  performedAt?: string;
 };
 
 export type MPMAnnualPlanDto = {
   id: string;
-  year: number;
-  description: string;
-  isActive: boolean;
+  fiscalYear: number;
   status: string;
-  createdAt: string;
-  updatedAt: string;
+  active: boolean;
+  year?: number;
+  description?: string;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type MPMMonthlyPlanDto = {
   id: string;
-  annualPlanId: string;
-  month: number;
-  year: number;
-  description: string;
+  planDetailsId: string;
+  formanId: string;
+  machineCondition?: string;
+  lastMntDateFrom?: string;
+  lastMntDateTo?: string;
+  nextMntPlanFrom: string;
+  nextMntPlanTo: string;
+  remark?: string;
   status: string;
-  createdAt: string;
-  updatedAt: string;
+  workOrderCreated: boolean;
+  annualPlanId?: string;
+  month?: number;
+  year?: number;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type MPMPlanDetailsDto = {
   id: string;
   annualPlanId: string;
   machineId: string;
+  monthsOfMaintenance: string;
   description: string;
-  maintenanceType: string;
-  estimatedDuration: number;
   plannerId: string;
+  recordedAt?: string;
+  maintenanceType?: string;
+  estimatedDuration?: number;
   monthBreakdown?: Record<string, boolean>;
 };
 
 export type WorkOrderMetricsDto = {
   assetId: string;
-  mttr: number;
-  mtbf: number;
-  totalBreakdowns: number;
-  periodStart: string;
-  periodEnd: string;
+  fromDate: string;
+  toDate: string;
+  totalWorkOrdersClosed: number;
+  mttrHours: number;
+  mtbfHours: number;
+  workOrdersAnalyzed: Array<{
+    id: string;
+    createdAt: string;
+    closedAt: string;
+    durationHours: number;
+  }>;
+};
+
+export type PlanChangeDto = {
+  id: string;
+  monthlyPlanId: string;
+  originalSchedule?: string;
+  reasonJustification: string;
+  changeRequestedBy?: string;
+  changeRequestedAt?: string;
+  lastUpdatedAt?: string;
+  status: string;
+  newNextMntPlanFrom: string;
+  newNextMntPlanTo: string;
+};
+
+export type MachineMaintenanceScheduleDto = {
+  planDetailsId: string;
+  machineId: string;
+  machineName?: string;
+  monthsOfMaintenance: string;
+  nextMaintenanceMonth: string;
+  daysUntilMaintenance: number;
+  description?: string;
 };
