@@ -20,6 +20,8 @@ export interface UserResponse {
   // Derived display name
   name: string;
   isActive?: boolean;
+}
+
 export interface Permission {
   id: string;
   name: string;
