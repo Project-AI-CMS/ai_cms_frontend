@@ -115,6 +115,7 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const [isQCDialogOpen, setIsQCDialogOpen] = useState(false);
   const [qcComment, setQCComment] = useState("");
   const [isSubmittingQC, setIsSubmittingQC] = useState(false);
+  const [isRequestingQC, setIsRequestingQC] = useState(false);
 
   // Update Status dialog
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
@@ -329,6 +330,20 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
     }
   };
 
+  const handleRequestQC = async () => {
+    setIsRequestingQC(true);
+    try {
+      await workOrderApi.requestQualityReview(workOrderId);
+      showSuccess("Work order moved to pending QC");
+      setIsStatusDialogOpen(false);
+      await fetchWorkOrderData();
+    } catch (err: unknown) {
+      setError((err as any)?.message || "Failed to request quality review");
+    } finally {
+      setIsRequestingQC(false);
+    }
+  };
+
   const handleUpdateStatus = async () => {
     if (!newStatus) return;
     setIsUpdatingStatus(true);
@@ -339,6 +354,8 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
         await workOrderApi.hold(workOrderId, { reason: "Manual status update" });
       } else if (newStatus === "IN_PROGRESS") {
         await workOrderApi.resume(workOrderId);
+      } else if (newStatus === "PENDING_QC") {
+        await workOrderApi.requestQualityReview(workOrderId);
       } else if (newStatus === "CANCELLED") {
         await workOrderApi.cancel(workOrderId, "Manual status update");
       } else {
@@ -578,10 +595,12 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
   const canEdit    = isAdmin && !isFinalStatus;
   const canComplete= isTech && ["IN_PROGRESS", "ASSIGNED"].includes(workOrder.status);
   const canCancel  = isAdmin && !isFinalStatus;
+  const canRequestQC = isTech && ["IN_PROGRESS", "REWORK_REQUIRED"].includes(workOrder.status);
   const canQC      = isAdmin && workOrder.status === "PENDING_QC";
   const statusTransitionOptions = [
     canHold ? { value: "ON_HOLD", label: "On Hold" } : null,
     canResume ? { value: "IN_PROGRESS", label: "In Progress" } : null,
+    canRequestQC ? { value: "PENDING_QC", label: "Pending QC" } : null,
     canComplete ? { value: "CLOSED", label: "Closed" } : null,
     canCancel ? { value: "CANCELLED", label: "Cancelled" } : null,
   ].filter((option): option is { value: string; label: string } => Boolean(option));
@@ -630,6 +649,11 @@ export function WorkOrderDetail({ workOrderId, user, onBack, onEdit }: WorkOrder
           {canComplete && (
             <Button variant="outline" onClick={() => setIsCompleteDialogOpen(true)} className="text-green-700 border-green-300 hover:bg-green-50">
               <CheckCircle2 className="w-4 h-4 mr-2" />Complete
+            </Button>
+          )}
+          {canRequestQC && (
+            <Button variant="outline" onClick={handleRequestQC} disabled={isRequestingQC} className="text-indigo-700 border-indigo-300 hover:bg-indigo-50">
+              <ClipboardList className="w-4 h-4 mr-2" />{isRequestingQC ? "Requesting..." : "Request QC"}
             </Button>
           )}
           {canQC && (

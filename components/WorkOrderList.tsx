@@ -31,7 +31,7 @@ import {
   AlertTriangle,
   Zap,
 } from "lucide-react";
-import { WorkOrder, WorkOrderStatus, WorkOrderPriority, UserInfo } from "@/types";
+import { WorkOrder, WorkOrderStatus, WorkOrderPriority, UserInfo, WorkOrderAssignment } from "@/types";
 import { workOrderApi } from "@/lib/api";
 
 type WorkOrderListProps = {
@@ -76,8 +76,18 @@ const normalizePriority = (priority?: string | null): WorkOrderPriority | null =
   return null;
 };
 
+const formatAssignedUsers = (assignments?: WorkOrderAssignment[]) => {
+  if (!assignments?.length) return "Unassigned";
+
+  return assignments
+    .map((assignment) => assignment.userName || assignment.userId)
+    .filter(Boolean)
+    .join(", ");
+};
+
 export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOrderListProps) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [assignedToByWorkOrder, setAssignedToByWorkOrder] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -104,6 +114,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
   ) => {
     setLoading(true);
     setError("");
+    setAssignedToByWorkOrder({});
     try {
       const params: {
         statuses?: string[];
@@ -155,9 +166,22 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
       }
 
       const start = (page - 1) * limit;
-      setWorkOrders(workOrdersData.slice(start, start + limit));
+      const visibleWorkOrders = workOrdersData.slice(start, start + limit);
+      setWorkOrders(visibleWorkOrders);
       setTotal(workOrdersData.length);
       setTotalPages(Math.max(1, Math.ceil(workOrdersData.length / limit)));
+
+      const assignmentEntries = await Promise.all(
+        visibleWorkOrders.map(async (wo: WorkOrder) => {
+          try {
+            const details = await workOrderApi.getById(wo.id);
+            return [wo.id, formatAssignedUsers(details.assignments)] as const;
+          } catch {
+            return [wo.id, "Unassigned"] as const;
+          }
+        }),
+      );
+      setAssignedToByWorkOrder(Object.fromEntries(assignmentEntries));
     } catch (err: unknown) {
       const message = (err as { message?: string })?.message || "Failed to fetch work orders";
       console.error("Failed to fetch work orders:", err);
@@ -390,7 +414,7 @@ export function WorkOrderList({ user, onViewWorkOrder, onEditWorkOrder }: WorkOr
                           )}
                         </td>
                         <td className="py-3 px-4 text-sm text-slate-600">
-                          Unassigned {/* TODO: Get from assignments */}
+                          {assignedToByWorkOrder[workOrder.id] || "Loading..."}
                         </td>
                         <td className="py-3 px-4 text-sm text-slate-600">
                           {formatDate(workOrder.createdAt)}

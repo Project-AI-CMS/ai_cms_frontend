@@ -1257,6 +1257,19 @@ export const workOrderApi = {
     }
   },
 
+  async requestQualityReview(id: string) {
+    try {
+      const response = await axios.post(
+        `${API_WORK_ORDER_URL}/work-orders/${encodeURIComponent(
+          id,
+        )}/request-qc`,
+      );
+      return response.data;
+    } catch (err: unknown) {
+      throw new Error(getApiErrorMessage(err, "Failed to request quality review"));
+    }
+  },
+
   // Task Management
   async addTask(
     workOrderId: string,
